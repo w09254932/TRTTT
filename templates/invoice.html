@@ -15,7 +15,7 @@
   </div>
   {% endif %}
   <dl class="facts">
-    <div><dt>العميل</dt><dd>{{ inv.private.name or 'يكتبه العميل' }}</dd></div>
+    <div><dt>العميل</dt><dd>{% if inv.customer %}<a href="{{ url_for('book.person', cid=inv.customer) }}">{{ inv.private.name or 'بدون اسم' }}</a>{% else %}{{ inv.private.name or 'يكتبه العميل' }}{% endif %}</dd></div>
     <div><dt>الجوال</dt><dd><bdi>{{ inv.private.phone or 'يكتبه العميل' }}</bdi></dd></div>
     <div><dt>البريد</dt><dd><bdi>{{ inv.private.email or 'يكتبه العميل' }}</bdi></dd></div>
     <div><dt>أُنشئت</dt><dd><bdi>{{ inv.created_at|when }}</bdi></dd></div>

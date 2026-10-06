@@ -66,7 +66,7 @@ class Store:
         return inv
 
     # ---- invoices
-    def create_invoice(self, amount, private, days):
+    def create_invoice(self, amount, private, days, customer=None):
         inv_id = "".join(secrets.choice(ID_CHARS) for _ in range(12))
         created = now()
         doc = {
@@ -75,6 +75,8 @@ class Store:
             "expires_at": created + timedelta(days=days),
             "attempts": 0, "views": 0, "declines": 0, "refunded_amount": 0.0,
         }
+        if customer:
+            doc["customer"] = customer
 
         def work(tx):
             tx.set(self.invoices.document(inv_id), doc)
@@ -123,6 +125,13 @@ class Store:
             self._bump(tx, views=1)
 
         self._run(work)
+
+    def set_customer(self, inv_id, customer):
+        self.invoices.document(inv_id).update({"customer": customer})
+
+    def for_customer(self, customer, limit=300):
+        rows = [self._load(snap) for snap in self.invoices.where("customer", "==", customer).limit(limit).stream()]
+        return sorted(rows, key=lambda inv: inv["created_at"], reverse=True)
 
     def note_checkout(self, inv_id, order_id, payment_id):
         """Remembers the latest gateway payment id of an invoice so its status can be asked for later."""

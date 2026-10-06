@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {% block title %}نتيجة الدفع | {{ store_name }}{% endblock %}
-{% block head %}{% if waiting %}<meta http-equiv="refresh" content="4;url={{ again }}">{% endif %}{% endblock %}
+{% block head %}{% if waiting %}<meta http-equiv="refresh" content="4;url={{ again }}">{% endif %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
 {% block body %}
 <main class="receipt">
+  {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
   <p class="issuer">{{ store_name }}</p>
   <h1>{{ inv.private.title }}</h1>
   <p class="due"><b>{{ inv.amount|money }}</b> ر.س</p>

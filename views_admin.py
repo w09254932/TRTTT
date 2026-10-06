@@ -69,12 +69,17 @@ def _dashboard(form=None, error=None, code=200):
             s.store.close(inv["id"], "expired")
             inv["status"] = "expired"
     stats, days = s.store.stats(), s.store.daily(14)
+    people = s.book.recent(50)
+    chosen = (form or {}).get("customer") or request.args.get("customer", "")
+    if chosen and chosen not in [p["id"] for p in people]:
+        people = [p for p in [s.book.get(chosen)] if p] + people
     older = int(rows[-1]["created_at"].timestamp() * 1e6) if more else None
     previous = session.get("prev")
     return render_template(
         "dashboard.html", rows=rows, older=older, stats=stats, days=days, form=form or {}, error=error,
         net=stats["paid_amount"] - stats["refunded_amount"], valid_days=VALID_DAYS,
         callback=legacy_flow.callback_url(s.cfg) if s.cfg.legacy else s.cfg.base_url + "/webhook/edfapay",
+        people=people, chosen=chosen,
         rate=round(100 * (stats["paid"] + stats["refunded"]) / stats["links"]) if stats["links"] else 0,
         peak=max([d["created"] for d in days] + [d["paid"] for d in days] + [1]),
         previous=datetime.fromisoformat(previous) if previous else None), code
@@ -92,13 +97,15 @@ def create():
     private = {"title": clean_text(form.get("title", ""), 120)}
     if not error and len(private["title"]) < 2:
         error = "اكتب وصفاً للفاتورة."
+    saved = svc().book.get(form.get("customer", "")) or {}
     for field, clean in (("name", clean_name), ("phone", clean_phone), ("email", clean_email)):
-        if not error and form.get(field, "").strip():
-            private[field], error = clean(form[field])
+        value = form.get(field, "").strip() or saved.get(field, "")
+        if not error and value:
+            private[field], error = clean(value)
     days = int(form.get("days")) if form.get("days") in map(str, VALID_DAYS) else 7
     if error:
         return _dashboard(form, error, 400)
-    inv_id = svc().store.create_invoice(amount, private, days)
+    inv_id = svc().store.create_invoice(amount, private, days, svc().book.remember(private))
     flash("تم إنشاء رابط الدفع.")
     return redirect(url_for(".invoice", inv_id=inv_id), 303)
 

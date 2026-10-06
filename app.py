@@ -80,13 +80,18 @@ def create_app(cfg=None, client=None):
                                 cfg.edfa_fallback_ip)
     else:
         gateway = EdfaPay(cfg.edfa_base_url, cfg.edfa_api_key, cfg.edfa_webhook_secret)
-    app.extensions["svc"] = SimpleNamespace(cfg=cfg, store=Store(client or make_client(cfg), vault), gateway=gateway)
-
+    from brand import Brand, brand
+    from customers import CustomerBook, book
     from legacy_flow import legacy
     from views_admin import admin
     from views_public import pub
+    store = Store(client or make_client(cfg), vault)
+    app.extensions["svc"] = SimpleNamespace(cfg=cfg, store=store, gateway=gateway,
+                                            book=CustomerBook(store.db, vault), brand=Brand(store.db))
     app.register_blueprint(admin)
     app.register_blueprint(pub)
+    app.register_blueprint(book)
+    app.register_blueprint(brand)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

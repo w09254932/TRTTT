@@ -27,6 +27,22 @@
     document.querySelectorAll('[data-share]').forEach(function (button) { button.hidden = false; });
   }
 
+  // Choosing a saved customer fills the customer fields; "new customer" clears them.
+  function fillFrom(select) {
+    var option = select.options[select.selectedIndex];
+    ['name', 'phone', 'email'].forEach(function (field) {
+      var input = document.getElementById(field);
+      if (input) { input.value = option.getAttribute('data-' + field) || ''; }
+    });
+  }
+  document.addEventListener('change', function (event) {
+    if (event.target.matches('[data-fill]')) { fillFrom(event.target); }
+  });
+  document.querySelectorAll('[data-fill]').forEach(function (select) {
+    var phone = document.getElementById('phone');
+    if (select.value && phone && phone.value === '') { fillFrom(select); }
+  });
+
   // Ask before destructive actions and stop double submits.
   document.addEventListener('submit', function (event) {
     var question = event.target.getAttribute('data-confirm');

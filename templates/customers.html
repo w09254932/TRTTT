@@ -1,0 +1,26 @@
+{% extends "admin.html" %}
+{% block title %}العملاء | {{ store_name }}{% endblock %}
+{% block main %}
+<section class="sheet">
+  <h1>العملاء</h1>
+  <p class="muted">يُضاف العميل هنا تلقائياً مع أول فاتورة فيها رقم جواله. الأسماء والجوالات والبريد محفوظة مشفّرة.</p>
+  <form method="get" class="find">
+    <label for="q">بحث بالاسم أو الجوال أو البريد</label>
+    <input id="q" name="q" value="{{ query }}" maxlength="60"><button class="quiet" type="submit">بحث</button>
+  </form>
+  {% if rows %}
+  <ul class="rows">
+    {% for p in rows %}
+    <li><a href="{{ url_for('book.person', cid=p.id) }}">
+      <span class="what">{{ p.name or 'بدون اسم' }}<small><bdi>{{ p.phone }}</bdi>{% if p.last_at %}، آخر فاتورة <bdi>{{ p.last_at|when('%Y-%m-%d') }}</bdi>{% endif %}</small></span>
+      <span class="chip">الفواتير: {{ p.invoices }}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% elif query %}
+  <p class="muted">لا يوجد عميل يطابق «{{ query }}».</p>
+  {% else %}
+  <p class="muted">لا يوجد عملاء بعد. أنشئ فاتورة واكتب فيها جوال العميل ليُحفظ هنا.</p>
+  {% endif %}
+</section>
+{% endblock %}

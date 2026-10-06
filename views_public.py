@@ -35,7 +35,8 @@ def _invoice(token):
 
 def _page(inv, form=None, error=None, code=200):
     need = [field for field in CLEANERS if not inv["private"].get(field)]
-    return render_template("pay.html", inv=inv, need=need, form=form or {}, error=error), code
+    return render_template("pay.html", inv=inv, need=need, form=form or {}, error=error,
+                           brand=svc().brand.get()), code
 
 
 @pub.get("/p/<token>")
@@ -61,6 +62,10 @@ def pay(token):
     order_id = svc().store.start_attempt(inv["id"], customer if filled else None)
     if not order_id:
         return _page(inv, request.form, BUSY, 429)
+    if filled:
+        linked = svc().book.remember(customer, new_invoice=not inv.get("customer"))
+        if linked and linked != inv.get("customer"):
+            svc().store.set_customer(inv["id"], linked)
     back = f"{svc().cfg.base_url}/p/{token}/done"
     try:
         checkout = svc().gateway.initiate(order_id, inv["amount"], customer, back + "?r=ok", back + "?r=fail",
@@ -87,7 +92,7 @@ def done(token):
     waiting = (inv["status"] == "pending" and request.args.get("r") != "fail" and tries < 12
                and outcome != "failed")
     again = url_for(".done", token=token, r="ok", n=tries + 1)
-    return render_template("done.html", inv=inv, waiting=waiting, again=again)
+    return render_template("done.html", inv=inv, waiting=waiting, again=again, brand=svc().brand.get())
 
 
 @pub.post("/webhook/edfapay")

@@ -80,6 +80,16 @@ button:disabled { opacity: .55; cursor: progress; }
 .facts dt { color: var(--muted); white-space: nowrap; }
 .facts dd { margin: 0; text-align: end; min-width: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.tabs { display: flex; gap: .25rem; padding: 0 .5rem; background: var(--ink); overflow-x: auto; }
+.tabs a { padding: .5rem .75rem; color: #c3cddb; font-weight: 600; text-decoration: none; white-space: nowrap; border-bottom: 3px solid transparent; }
+.tabs a.on { color: #fff; border-bottom-color: #fff; }
+bdi { direction: ltr; unicode-bidi: isolate; }
+.what small bdi { white-space: nowrap; }
+.check { display: flex; align-items: center; gap: .5rem; font-weight: 400; }
+.check input { flex: none; width: auto; min-height: 0; }
+.swatch { max-width: 140px; padding: 4px; }
+.preview { display: block; max-width: 200px; max-height: 72px; margin-bottom: .75rem; padding: .5rem; border: 1px solid var(--line); border-radius: 8px; }
+input[type=file] { padding: .6rem .75rem; }
 
 /* sign in and messages */
 .gate { max-width: 380px; margin: 12vh auto 0; padding: 1.5rem; }
@@ -92,6 +102,7 @@ button:disabled { opacity: .55; cursor: progress; }
 /* the customer's invoice, drawn as a paper receipt */
 .receipt { width: calc(100% - 2rem); max-width: 400px; overflow: hidden; margin: 2rem auto 1rem; padding: 2rem 1.5rem 1.5rem; background: var(--sheet); border-radius: 14px; text-align: center; box-shadow: 0 12px 30px rgba(20, 33, 61, .12); }
 .receipt .issuer { font-weight: 700; color: var(--riyal); margin-bottom: 1.25rem; }
+.receipt .logo { display: block; max-width: 60%; max-height: 72px; margin: 0 auto .75rem; }
 .receipt .due { font-size: 1.25rem; margin: .5rem 0 0; }
 .receipt .due b { font-size: 3rem; line-height: 1.2; }
 .receipt form { text-align: start; }

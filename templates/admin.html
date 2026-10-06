@@ -7,6 +7,11 @@
     <button class="plain" type="submit">تسجيل الخروج</button>
   </form>
 </header>
+<nav class="tabs" aria-label="أقسام اللوحة">
+  <a class="{{ 'on' if request.blueprint == 'admin' }}" href="{{ url_for('admin.dashboard') }}">الفواتير</a>
+  <a class="{{ 'on' if request.blueprint == 'book' }}" href="{{ url_for('book.people') }}">العملاء</a>
+  <a class="{{ 'on' if request.blueprint == 'brand' }}" href="{{ url_for('brand.settings') }}">الشعار والألوان</a>
+</nav>
 <main class="wrap">
   {% for message in get_flashed_messages() %}<p class="note" role="status">{{ message }}</p>{% endfor %}
   {% block main %}{% endblock %}

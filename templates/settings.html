@@ -1,0 +1,33 @@
+{% extends "admin.html" %}
+{% block title %}الشعار والألوان | {{ store_name }}{% endblock %}
+{% block main %}
+<section class="sheet">
+  <h1>الشعار والألوان</h1>
+  <p class="muted">تظهر للعميل في صفحة الدفع وصفحة نتيجة الدفع. قد يحتاج التغيير دقيقة حتى يظهر.</p>
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="grid">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p class="wide"><label for="logo">الشعار</label>
+      {% if brand.logo %}<img class="preview" src="{{ url_for('brand.logo', v=brand.version) }}" alt="الشعار الحالي">{% endif %}
+      <input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp">
+      <span class="hint">صورة PNG أو JPG أو WebP بحجم أقل من 300 كيلوبايت.</span></p>
+    {% if brand.logo %}
+    <p class="wide"><label class="check"><input type="checkbox" name="remove_logo" value="1"> إزالة الشعار الحالي</label></p>
+    {% endif %}
+    <p><label for="primary">لون الأزرار واسم المتجر</label>
+      <input class="swatch" id="primary" name="primary" type="color" value="{{ brand.primary }}"></p>
+    <p><label for="background">لون خلفية الصفحة</label>
+      <input class="swatch" id="background" name="background" type="color" value="{{ brand.background }}"></p>
+    <p class="wide"><button class="primary" type="submit">حفظ الشعار والألوان</button></p>
+  </form>
+</section>
+<section class="sheet">
+  <h2>الرجوع للألوان الأصلية</h2>
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="primary" value="#0b6e5a">
+    <input type="hidden" name="background" value="#edf0f4">
+    <button class="quiet" type="submit">استرجاع اللونين الأصليين</button>
+  </form>
+</section>
+{% endblock %}

@@ -42,6 +42,13 @@
       </select></p>
     <p class="wide"><label for="title">وصف الفاتورة</label>
       <input id="title" name="title" maxlength="120" required value="{{ form.title }}"></p>
+    {% if people %}
+    <p class="wide"><label for="customer">عميل محفوظ</label>
+      <select id="customer" name="customer" data-fill>
+        <option value="">عميل جديد</option>{% for p in people %}
+        <option value="{{ p.id }}" data-name="{{ p.name }}" data-phone="{{ p.phone }}" data-email="{{ p.email }}" {{ 'selected' if chosen == p.id }}>{{ p.name or 'بدون اسم' }} &lrm;{{ p.phone }}&lrm;</option>{% endfor %}
+      </select></p>
+    {% endif %}
     <p class="wide hint">بيانات العميل اختيارية. ما تتركه فارغاً يكتبه العميل قبل الدفع.</p>
     <p><label for="name">اسم العميل</label><input id="name" name="name" maxlength="80" value="{{ form.name }}"></p>
     <p><label for="phone">جوال العميل</label>

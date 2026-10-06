@@ -27,6 +27,12 @@ class Vault:
     def __init__(self, secret):
         key = HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=b"trttt-vault-v1").derive(secret.encode())
         self._aes = AESGCM(key)
+        self._index_key = HKDF(algorithm=hashes.SHA256(), length=32, salt=None,
+                               info=b"trttt-index-v1").derive(secret.encode())
+
+    def index(self, value):
+        """Keyed fingerprint of a value: lets a record be found without storing the value itself."""
+        return hmac.new(self._index_key, value.encode(), hashlib.sha256).hexdigest()[:32]
 
     def seal(self, data, bound_to):
         nonce = os.urandom(12)
@@ -125,5 +131,5 @@ def harden(response, secure):
     if secure:
         h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     if not request.path.startswith("/static/"):
-        h["Cache-Control"] = "no-store"
+        h.setdefault("Cache-Control", "no-store")
     return response

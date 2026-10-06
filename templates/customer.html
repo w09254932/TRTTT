@@ -1,0 +1,49 @@
+{% extends "admin.html" %}
+{% block title %}{{ who.name or 'عميل' }} | {{ store_name }}{% endblock %}
+{% block main %}
+<section class="sheet">
+  <h1>{{ who.name or 'بدون اسم' }}</h1>
+  <dl class="facts">
+    <div><dt>الجوال</dt><dd><bdi>{{ who.phone }}</bdi></dd></div>
+    <div><dt>البريد</dt><dd><bdi>{{ who.email or 'غير مسجل' }}</bdi></dd></div>
+    <div><dt>الفواتير</dt><dd>{{ rows|length }}، المدفوع منها {{ paid }}، بانتظار الدفع {{ waiting }}</dd></div>
+    <div><dt>إجمالي ما دفعه</dt><dd>{{ total|money }} ر.س</dd></div>
+  </dl>
+  <a class="primary" href="{{ url_for('admin.dashboard', customer=who.id) }}#new">فاتورة جديدة لهذا العميل</a>
+</section>
+<section class="sheet">
+  <h2>فواتيره</h2>
+  {% if rows %}
+  <ul class="rows">
+    {% for inv in rows %}
+    <li><a href="{{ url_for('admin.invoice', inv_id=inv.id) }}">
+      <span class="what">{{ inv.private.title or 'بدون وصف' }}<small><bdi>{{ inv.created_at|when }}</bdi></small></span>
+      <span class="sum">{{ inv.amount|money }}</span>
+      <span class="chip {{ 'expired' if inv.overdue else inv.status }}">{{ status_ar['expired' if inv.overdue else inv.status] }}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">لا توجد فواتير مرتبطة بهذا العميل.</p>
+  {% endif %}
+</section>
+<section class="sheet" id="edit">
+  <h2>تعديل بياناته</h2>
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('book.edit', cid=who.id) }}#edit" class="grid">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p><label for="name">الاسم</label><input id="name" name="name" maxlength="80" required value="{{ who.name }}"></p>
+    <p><label for="email">البريد</label><input id="email" name="email" type="email" dir="ltr" value="{{ who.email }}"></p>
+    <p class="wide hint">رقم الجوال هو ما يميّز العميل، ولتغييره أنشئ فاتورة بالرقم الجديد.</p>
+    <p class="wide"><button class="quiet" type="submit">حفظ التعديل</button></p>
+  </form>
+</section>
+<section class="sheet">
+  <h2>حذف العميل</h2>
+  <form method="post" action="{{ url_for('book.delete', cid=who.id) }}" data-confirm="حذف العميل لا يمكن التراجع عنه. هل تريد الحذف؟">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p><label class="check"><input type="checkbox" name="erase" value="1"> امسح أيضاً اسمه وجواله وبريده من فواتيره، مع إبقاء المبالغ وسجل الدفع</label></p>
+    <button class="danger" type="submit">حذف العميل من الدفتر</button>
+  </form>
+</section>
+{% endblock %}
