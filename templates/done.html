@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}نتيجة الدفع | {{ store_name }}{% endblock %}
+{% block head %}{% if waiting %}<meta http-equiv="refresh" content="4;url={{ again }}">{% endif %}{% endblock %}
+{% block body %}
+<main class="receipt">
+  <p class="issuer">{{ store_name }}</p>
+  <h1>{{ inv.private.title }}</h1>
+  <p class="due"><b>{{ inv.amount|money }}</b> ر.س</p>
+  <p class="muted">فاتورة رقم <bdi>{{ inv.id }}</bdi></p>
+  <hr class="tear">
+  {% if inv.status == 'paid' %}
+  <p class="stamp">مدفوعة</p>
+  <p>تم استلام المبلغ. شكراً لك.</p>
+  {% elif waiting %}
+  <p class="pulse" role="status">ننتظر تأكيد البنك. تتحدث هذه الصفحة تلقائياً خلال ثوانٍ.</p>
+  {% elif inv.status == 'pending' %}
+  <p class="alert" role="alert">لم يصلنا تأكيد بالدفع.{% if inv.last_error %} سبب الرفض: {{ inv.last_error }}.{% endif %} إن خُصم المبلغ من حسابك فتواصل مع {{ store_name }} قبل إعادة المحاولة.</p>
+  <a class="primary" href="{{ url_for('pub.invoice', token=inv.token) }}">حاول الدفع مرة أخرى</a>
+  {% else %}
+  <p class="alert">هذا الرابط لم يعد صالحاً للدفع.</p>
+  {% endif %}
+</main>
+{% endblock %}

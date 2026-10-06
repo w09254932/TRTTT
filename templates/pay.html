@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ inv.private.title }} | {{ store_name }}{% endblock %}
+{% block body %}
+<main class="receipt">
+  <p class="issuer">{{ store_name }}</p>
+  <h1>{{ inv.private.title }}</h1>
+  <p class="due"><b>{{ inv.amount|money }}</b> ر.س</p>
+  <p class="muted">فاتورة رقم <bdi>{{ inv.id }}</bdi></p>
+  <hr class="tear">
+  {% if inv.status == 'pending' %}
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('pub.pay', token=inv.token) }}">
+    {% if 'name' in need %}<label for="name">الاسم</label>
+    <input id="name" name="name" autocomplete="name" maxlength="80" required value="{{ form.name }}">{% endif %}
+    {% if 'phone' in need %}<label for="phone">رقم الجوال</label>
+    <input id="phone" name="phone" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="05xxxxxxxx" required value="{{ form.phone }}">{% endif %}
+    {% if 'email' in need %}<label for="email">البريد الإلكتروني</label>
+    <input id="email" name="email" type="email" autocomplete="email" dir="ltr" required value="{{ form.email }}">{% endif %}
+    <button class="primary" type="submit">ادفع {{ inv.amount|money }} ر.س</button>
+  </form>
+  <p class="muted">ينتهي هذا الرابط في <bdi>{{ inv.expires_at|when('%Y-%m-%d') }}</bdi>.</p>
+  {% elif inv.status == 'paid' %}
+  <p class="stamp">مدفوعة</p>
+  <p>تم استلام المبلغ في <bdi>{{ inv.paid_at|when }}</bdi>. لا يلزمك أي إجراء آخر.</p>
+  {% elif inv.status == 'refunded' %}
+  <p class="alert">تم استرداد مبلغ هذه الفاتورة.</p>
+  {% else %}
+  <p class="alert">هذا الرابط لم يعد صالحاً للدفع. اطلب رابطاً جديداً من {{ store_name }}.</p>
+  {% endif %}
+</main>
+<p class="fine">تُدخل بيانات البطاقة في صفحة بوابة الدفع EdfaPay، وهذا الموقع لا يراها ولا يحفظها.</p>
+{% endblock %}

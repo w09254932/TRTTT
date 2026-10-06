@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block body %}
+<main class="gate">
+  <h1>{{ title }}</h1>
+  {% if problems %}
+  <p class="muted">أضف المتغيرات التالية في Render من تبويب Environment ثم أعد النشر:</p>
+  <ul class="vars">{% for name, hint in problems %}<li><code dir="ltr">{{ name }}</code>{{ hint }}</li>{% endfor %}</ul>
+  {% endif %}
+</main>
+{% endblock %}

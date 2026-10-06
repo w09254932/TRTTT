@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: trttt
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 4 --timeout 60
+    healthCheckPath: /healthz
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: EDFAPAY_ENV
+        value: sandbox
+      - key: OWNER_NUMBER
+        sync: false
+      - key: OWNER_PASSWORD
+        sync: false
+      - key: FIREBASE_CREDENTIALS
+        sync: false
+      - key: EDFAPAY_API_KEY
+        sync: false
+      - key: EDFAPAY_WEBHOOK_SECRET
+        sync: false

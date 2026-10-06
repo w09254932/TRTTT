@@ -1,0 +1,77 @@
+{% extends "admin.html" %}
+{% block main %}
+<section class="ledger" aria-label="الإحصائيات">
+  <p class="lead"><b>{{ stats.links }}</b> رابط دفع تم إنشاؤه</p>
+  <dl>
+    <div><dt>مدفوعة</dt><dd>{{ stats.paid }}</dd></div>
+    <div><dt>بانتظار الدفع</dt><dd>{{ stats.pending }}</dd></div>
+    <div><dt>منتهية أو ملغاة</dt><dd>{{ stats.expired + stats.cancelled }}</dd></div>
+    <div><dt>مستردة</dt><dd>{{ stats.refunded }}</dd></div>
+    <div><dt>المحصّل بالريال</dt><dd>{{ net|money }}</dd></div>
+    <div><dt>نسبة الدفع</dt><dd>{{ rate }}%</dd></div>
+    <div><dt>مشاهدات الروابط</dt><dd>{{ stats.views }}</dd></div>
+    <div><dt>محاولات مرفوضة</dt><dd>{{ stats.declines }}</dd></div>
+  </dl>
+</section>
+
+<section class="sheet">
+  <h2>آخر 14 يوماً</h2>
+  <svg class="chart" viewBox="0 0 336 100" role="img" aria-label="الروابط المنشأة والمدفوعة يومياً" direction="ltr">
+    {% for d in days %}
+    {% set made = (70 * d.created / peak)|round(1) %}{% set paid = (70 * d.paid / peak)|round(1) %}
+    <g><title>{{ d.day }}: أُنشئ {{ d.created }}، دُفع {{ d.paid }}</title>
+      <rect class="made" x="{{ loop.index0 * 24 + 4 }}" y="{{ 80 - made }}" width="16" height="{{ made }}" rx="2"/>
+      <rect class="got" x="{{ loop.index0 * 24 + 8 }}" y="{{ 80 - paid }}" width="8" height="{{ paid }}" rx="1"/>
+      <text x="{{ loop.index0 * 24 + 12 }}" y="94">{{ d.day[8:] }}</text></g>
+    {% endfor %}
+    <line x1="0" y1="80.5" x2="336" y2="80.5"/>
+  </svg>
+  <p class="key"><span class="made"></span> أُنشئت <span class="got"></span> دُفعت</p>
+</section>
+
+<section class="sheet" id="new">
+  <h2>فاتورة جديدة</h2>
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('admin.create') }}#new" class="grid">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p><label for="amount">المبلغ بالريال</label>
+      <input id="amount" name="amount" inputmode="decimal" dir="ltr" required value="{{ form.amount }}"></p>
+    <p><label for="days">صلاحية الرابط</label>
+      <select id="days" name="days">{% for n in valid_days %}
+        <option value="{{ n }}" {{ 'selected' if (form.days or '7') == n|string }}>{{ n }} {{ 'يوم' if n in (1, 14, 30) else 'أيام' }}</option>{% endfor %}
+      </select></p>
+    <p class="wide"><label for="title">وصف الفاتورة</label>
+      <input id="title" name="title" maxlength="120" required value="{{ form.title }}"></p>
+    <p class="wide hint">بيانات العميل اختيارية. ما تتركه فارغاً يكتبه العميل قبل الدفع.</p>
+    <p><label for="name">اسم العميل</label><input id="name" name="name" maxlength="80" value="{{ form.name }}"></p>
+    <p><label for="phone">جوال العميل</label>
+      <input id="phone" name="phone" inputmode="tel" dir="ltr" value="{{ form.phone }}"></p>
+    <p class="wide"><label for="email">بريد العميل</label>
+      <input id="email" name="email" type="email" dir="ltr" value="{{ form.email }}"></p>
+    <p class="wide"><button class="primary" type="submit">إنشاء رابط الدفع</button></p>
+  </form>
+</section>
+
+<section class="sheet">
+  <h2>الفواتير</h2>
+  <form method="get" action="{{ url_for('admin.find') }}" class="find">
+    <label for="q">بحث برقم الفاتورة</label>
+    <input id="q" name="q" dir="ltr" maxlength="12" required><button class="quiet" type="submit">فتح</button>
+  </form>
+  {% if rows %}
+  <ul class="rows">
+    {% for inv in rows %}
+    <li><a href="{{ url_for('admin.invoice', inv_id=inv.id) }}">
+      <span class="what">{{ inv.private.title or 'بدون وصف' }}<small>{{ inv.private.name or 'عميل غير مسمى' }}، <bdi>{{ inv.created_at|when }}</bdi></small></span>
+      <span class="sum">{{ inv.amount|money }}</span>
+      <span class="chip {{ inv.status }}">{{ status_ar[inv.status] }}</span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% if older %}<p><a class="quiet" href="{{ url_for('admin.dashboard', before=older) }}">فواتير أقدم</a></p>{% endif %}
+  {% else %}
+  <p class="muted">لا توجد فواتير بعد. أنشئ أول رابط دفع من النموذج أعلاه.</p>
+  {% endif %}
+</section>
+{% if previous %}<p class="foot">آخر دخول قبل هذه الجلسة: <bdi>{{ previous|when }}</bdi></p>{% endif %}
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "admin.html" %}
+{% block title %}فاتورة {{ inv.id }} | {{ store_name }}{% endblock %}
+{% block main %}
+<section class="sheet">
+  <p class="muted">فاتورة رقم <bdi>{{ inv.id }}</bdi></p>
+  <h1>{{ inv.private.title or 'بدون وصف' }}</h1>
+  <p class="total"><b>{{ inv.amount|money }}</b> ر.س <span class="chip {{ inv.status }}">{{ status_ar[inv.status] }}</span></p>
+  {% if inv.status == 'pending' %}
+  <label for="link">رابط الدفع</label>
+  <div class="share">
+    <input id="link" value="{{ link }}" readonly dir="ltr">
+    <button class="primary" type="button" data-copy="{{ link }}">نسخ الرابط</button>
+    <button class="quiet" type="button" data-share="{{ link }}" hidden>مشاركة</button>
+    <a class="quiet" href="{{ whatsapp }}" target="_blank" rel="noopener noreferrer">إرسال بواتساب</a>
+  </div>
+  {% endif %}
+  <dl class="facts">
+    <div><dt>العميل</dt><dd>{{ inv.private.name or 'يكتبه العميل' }}</dd></div>
+    <div><dt>الجوال</dt><dd><bdi>{{ inv.private.phone or 'يكتبه العميل' }}</bdi></dd></div>
+    <div><dt>البريد</dt><dd><bdi>{{ inv.private.email or 'يكتبه العميل' }}</bdi></dd></div>
+    <div><dt>أُنشئت</dt><dd><bdi>{{ inv.created_at|when }}</bdi></dd></div>
+    <div><dt>{{ 'دُفعت' if inv.paid_at else 'تنتهي' }}</dt><dd><bdi>{{ (inv.paid_at or inv.expires_at)|when }}</bdi></dd></div>
+    <div><dt>المشاهدات</dt><dd>{{ inv.views }}</dd></div>
+    <div><dt>محاولات الدفع</dt><dd>{{ inv.attempts }}، المرفوض منها {{ inv.declines }}</dd></div>
+    {% if inv.refunded_amount %}<div><dt>المسترد</dt><dd>{{ inv.refunded_amount|money }} ر.س</dd></div>{% endif %}
+    {% if inv.scheme %}<div><dt>البطاقة</dt><dd>{{ inv.scheme }}</dd></div>{% endif %}
+    {% if inv.rrn %}<div><dt>المرجع البنكي</dt><dd><bdi>{{ inv.rrn }}</bdi></dd></div>{% endif %}
+    {% if inv.txn %}<div><dt>رقم العملية</dt><dd><bdi class="tiny">{{ inv.txn }}</bdi></dd></div>{% endif %}
+    {% if inv.last_error %}<div><dt>آخر رفض</dt><dd>{{ inv.last_error }}</dd></div>{% endif %}
+  </dl>
+  <div class="actions">
+    {% if inv.txn %}
+    <form method="post" action="{{ url_for('admin.check', inv_id=inv.id) }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="quiet" type="submit">استعلام من البوابة</button>
+    </form>
+    {% endif %}
+    {% if inv.status == 'pending' %}
+    <form method="post" action="{{ url_for('admin.cancel', inv_id=inv.id) }}" data-confirm="إلغاء الفاتورة يوقف رابط الدفع. هل تريد الإلغاء؟">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="danger" type="submit">إلغاء الفاتورة</button>
+    </form>
+    {% endif %}
+  </div>
+</section>
+<section class="sheet">
+  <h2>إشعارات بوابة الدفع</h2>
+  {% if events %}
+  <ul class="rows">
+    {% for ev in events %}
+    <li><div>
+      <span class="what">{{ words.get(ev.type, ev.type) }} {{ words.get(ev.status, ev.status) }}<small><bdi>{{ ev.at|when }}</bdi>{% if ev.reason %}، <bdi>{{ ev.reason }}</bdi>{% endif %}{% if ev.note %}، {{ words.get(ev.note, ev.note) }}{% endif %}</small></span>
+      <span class="sum">{{ ev.amount|money }}</span>
+    </div></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">لم يصل أي إشعار عن هذه الفاتورة بعد.</p>
+  {% endif %}
+</section>
+<p><a class="quiet" href="{{ url_for('admin.dashboard') }}">رجوع إلى اللوحة</a></p>
+{% endblock %}

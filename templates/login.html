@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}دخول المالك | {{ store_name }}{% endblock %}
+{% block body %}
+<main class="gate">
+  <h1>{{ store_name }}</h1>
+  <p class="muted">هذه اللوحة للمالك فقط.</p>
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" autocomplete="on">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="number">رقم المالك</label>
+    <input id="number" name="number" inputmode="numeric" autocomplete="username" dir="ltr" required autofocus>
+    <label for="password">كلمة المرور</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" dir="ltr" required>
+    <button class="primary" type="submit">دخول</button>
+  </form>
+</main>
+{% endblock %}
