@@ -11,6 +11,8 @@ class GatewayError(Exception):
 
 
 class EdfaPay:
+    legacy = False
+
     def __init__(self, base_url, api_key, webhook_secret, timeout=20):
         self.base_url = base_url
         self.webhook_secret = webhook_secret.encode()
@@ -29,7 +31,7 @@ class EdfaPay:
             raise GatewayError(f"HTTP {resp.status_code}: {str(message)[:300]}")
         return body.get("data") or {}
 
-    def initiate(self, order_id, amount, customer, success_url, failure_url):
+    def initiate(self, order_id, amount, customer, success_url, failure_url, payer_ip=None):
         """Opens a checkout session and returns the URL the customer must be sent to."""
         data = self._call("POST", "/api/v1/payment-gateway/initiate", json={
             "orderId": order_id,

@@ -124,6 +124,10 @@ class Store:
 
         self._run(work)
 
+    def note_checkout(self, inv_id, order_id, payment_id):
+        """Remembers the latest gateway payment id of an invoice so its status can be asked for later."""
+        self.invoices.document(inv_id).update({"checkout": {"order": order_id, "id": payment_id}})
+
     def start_attempt(self, inv_id, private=None):
         """Reserves a payment attempt. Returns its unique gateway order id, or None when not allowed."""
         ref = self.invoices.document(inv_id)

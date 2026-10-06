@@ -5,6 +5,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
+import legacy_flow
 from edfapay import GatewayError
 from security import check_csrf, check_owner, ip_key, sign_in, signed_in, too_many
 from validate import clean_amount, clean_email, clean_name, clean_phone, clean_text
@@ -73,6 +74,7 @@ def _dashboard(form=None, error=None, code=200):
     return render_template(
         "dashboard.html", rows=rows, older=older, stats=stats, days=days, form=form or {}, error=error,
         net=stats["paid_amount"] - stats["refunded_amount"], valid_days=VALID_DAYS,
+        callback=legacy_flow.callback_url(s.cfg) if s.cfg.legacy else s.cfg.base_url + "/webhook/edfapay",
         rate=round(100 * (stats["paid"] + stats["refunded"]) / stats["links"]) if stats["links"] else 0,
         peak=max([d["created"] for d in days] + [d["paid"] for d in days] + [1]),
         previous=datetime.fromisoformat(previous) if previous else None), code
@@ -138,6 +140,18 @@ def cancel(inv_id):
 def check(inv_id):
     """Asks EdfaPay directly about the last transaction. Shown for information; it changes nothing."""
     inv = _load(inv_id)
+    if svc().gateway.legacy:
+        last = inv.get("checkout") or {}
+        outcome = legacy_flow.confirm(last.get("order"), last.get("id"))
+        if outcome == "applied":
+            flash("أكدت البوابة الدفع وتم تحديث الفاتورة.")
+        elif outcome in legacy_flow.PAID:
+            flash("البوابة تؤكد أن هذه الفاتورة مدفوعة.")
+        elif outcome == "amount_mismatch":
+            flash("المبلغ المدفوع في البوابة لا يطابق مبلغ الفاتورة، فلم تُحتسب مدفوعة.")
+        else:
+            flash("البوابة لم تؤكد دفع هذه الفاتورة حتى الآن.")
+        return redirect(url_for(".invoice", inv_id=inv_id), 303)
     try:
         record = svc().gateway.status(inv["txn"]) if inv.get("txn") else None
     except GatewayError as exc:

@@ -73,5 +73,13 @@
   <p class="muted">لا توجد فواتير بعد. أنشئ أول رابط دفع من النموذج أعلاه.</p>
   {% endif %}
 </section>
+<section class="sheet">
+  <h2>ربط EdfaPay</h2>
+  <p class="muted">انسخ هذا الرابط إلى خانة لينك الكول باك في إعدادات التكامل بلوحة EdfaPay. يتغير الرابط إذا غيّرت SECRET_KEY.</p>
+  <div class="share">
+    <input id="link" value="{{ callback }}" readonly dir="ltr">
+    <button class="quiet" type="button" data-copy="{{ callback }}">نسخ الرابط</button>
+  </div>
+</section>
 {% if previous %}<p class="foot">آخر دخول قبل هذه الجلسة: <bdi>{{ previous|when }}</bdi></p>{% endif %}
 {% endblock %}

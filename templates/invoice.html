@@ -29,7 +29,7 @@
     {% if inv.last_error %}<div><dt>آخر رفض</dt><dd>{{ inv.last_error }}</dd></div>{% endif %}
   </dl>
   <div class="actions">
-    {% if inv.txn %}
+    {% if inv.txn or inv.checkout %}
     <form method="post" action="{{ url_for('admin.check', inv_id=inv.id) }}">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
       <button class="quiet" type="submit">استعلام من البوابة</button>

@@ -4,8 +4,9 @@ import re
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
+import legacy_flow
 from edfapay import GatewayError
-from security import too_many
+from security import client_ip, too_many
 from validate import clean_email, clean_name, clean_phone
 
 pub = Blueprint("pub", __name__)
@@ -62,27 +63,37 @@ def pay(token):
         return _page(inv, request.form, BUSY, 429)
     back = f"{svc().cfg.base_url}/p/{token}/done"
     try:
-        checkout = svc().gateway.initiate(order_id, inv["amount"], customer, back + "?r=ok", back + "?r=fail")
+        checkout = svc().gateway.initiate(order_id, inv["amount"], customer, back + "?r=ok", back + "?r=fail",
+                                          payer_ip=client_ip())
     except GatewayError as exc:
         current_app.logger.error("edfapay initiate failed for %s: %s", order_id, exc)
         inv["private"] = customer
         return _page(inv, None, BUSY, 502)
+    if svc().gateway.legacy:
+        svc().store.note_checkout(inv["id"], order_id, checkout.rstrip("/").rsplit("/", 1)[-1][:64])
     return redirect(checkout, 303)
 
 
 @pub.route("/p/<token>/done", methods=["GET", "POST"])
 def done(token):
     """Where EdfaPay sends the customer back. The result shown comes only from the verified webhook."""
-    inv = _invoice(token)
+    inv, outcome = _invoice(token), None
+    if svc().gateway.legacy and inv["status"] == "pending":
+        outcome = legacy_flow.poll(inv)
+        if outcome in legacy_flow.PAID:
+            inv = svc().store.by_token(token)
     tries = request.args.get("n", "0")
     tries = int(tries) if tries.isdigit() and len(tries) < 3 else 0
-    waiting = inv["status"] == "pending" and request.args.get("r") != "fail" and tries < 12
+    waiting = (inv["status"] == "pending" and request.args.get("r") != "fail" and tries < 12
+               and outcome != "failed")
     again = url_for(".done", token=token, r="ok", n=tries + 1)
     return render_template("done.html", inv=inv, waiting=waiting, again=again)
 
 
 @pub.post("/webhook/edfapay")
 def webhook():
+    if svc().gateway.legacy:
+        abort(404)
     raw = request.get_data()
     if not svc().gateway.verify(raw, request.headers.get("X-EdfaPay-Signature", "")):
         current_app.logger.warning("webhook rejected: bad signature")

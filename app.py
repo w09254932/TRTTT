@@ -10,6 +10,7 @@ from werkzeug.exceptions import HTTPException
 from config import Config
 from db import KSA, Store, make_client
 from edfapay import EdfaPay
+from edfapay_legacy import EdfaPayLegacy
 from security import Vault, csrf_token, harden
 
 STATUS_AR = {"pending": "بانتظار الدفع", "paid": "مدفوعة", "cancelled": "ملغاة",
@@ -74,16 +75,20 @@ def create_app(cfg=None, client=None):
         return app
 
     vault = Vault(cfg.encryption_key)
-    app.extensions["svc"] = SimpleNamespace(
-        cfg=cfg,
-        store=Store(client or make_client(cfg), vault),
-        gateway=EdfaPay(cfg.edfa_base_url, cfg.edfa_api_key, cfg.edfa_webhook_secret),
-    )
+    if cfg.legacy:
+        gateway = EdfaPayLegacy(cfg.edfa_base_url, cfg.edfa_merchant_id, cfg.edfa_merchant_password,
+                                cfg.edfa_fallback_ip)
+    else:
+        gateway = EdfaPay(cfg.edfa_base_url, cfg.edfa_api_key, cfg.edfa_webhook_secret)
+    app.extensions["svc"] = SimpleNamespace(cfg=cfg, store=Store(client or make_client(cfg), vault), gateway=gateway)
 
+    from legacy_flow import legacy
     from views_admin import admin
     from views_public import pub
     app.register_blueprint(admin)
     app.register_blueprint(pub)
+    if cfg.legacy:
+        app.register_blueprint(legacy)
 
     @app.errorhandler(Exception)
     def failed(exc):

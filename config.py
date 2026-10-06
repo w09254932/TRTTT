@@ -37,8 +37,14 @@ class Config:
         self.emulator = bool(_env("FIRESTORE_EMULATOR_HOST"))
         self.edfa_api_key = _env("EDFAPAY_API_KEY")
         self.edfa_webhook_secret = _env("EDFAPAY_WEBHOOK_SECRET")
+        self.edfa_merchant_id = _env("EDFAPAY_MERCHANT_ID")
+        self.edfa_merchant_password = _env("EDFAPAY_MERCHANT_PASSWORD")
+        self.edfa_fallback_ip = _env("EDFAPAY_FALLBACK_IP", "127.0.0.1")
+        # Accounts with a merchant ID + password use the older API; accounts with an API key use the newer one.
+        self.legacy = bool(self.edfa_merchant_id or self.edfa_merchant_password) or not self.edfa_api_key
         self.edfa_env = _env("EDFAPAY_ENV", "sandbox").lower()
-        self.edfa_base_url = (_env("EDFAPAY_BASE_URL") or GATEWAYS.get(self.edfa_env, "")).rstrip("/")
+        default_url = "https://api.edfapay.com" if self.legacy else GATEWAYS.get(self.edfa_env, "")
+        self.edfa_base_url = (_env("EDFAPAY_BASE_URL") or default_url).rstrip("/")
         self.base_url = (_env("BASE_URL") or _env("RENDER_EXTERNAL_URL")).rstrip("/")
         self.store_name = _env("STORE_NAME", "فواتير الدفع")
         self.insecure_dev = _env("INSECURE_DEV") == "1"
@@ -57,9 +63,12 @@ class Config:
         sa = self.service_account or {}
         if not self.emulator and not all(sa.get(k) for k in ("project_id", "private_key", "client_email")):
             out.append(("FIREBASE_CREDENTIALS", "ملف مفتاح حساب الخدمة من Firebase بصيغة JSON كاملاً"))
-        if not self.edfa_api_key:
-            out.append(("EDFAPAY_API_KEY", "مفتاح API من لوحة EdfaPay"))
-        if not self.edfa_webhook_secret:
+        if self.legacy:
+            if not self.edfa_merchant_id:
+                out.append(("EDFAPAY_MERCHANT_ID", "معرف التاجر من إعدادات التكامل في لوحة EdfaPay"))
+            if not self.edfa_merchant_password:
+                out.append(("EDFAPAY_MERCHANT_PASSWORD", "كلمة مرور التاجر من إعدادات التكامل في لوحة EdfaPay"))
+        elif not self.edfa_webhook_secret:
             out.append(("EDFAPAY_WEBHOOK_SECRET", "السر الذي تكتبه في إعداد Webhook داخل لوحة EdfaPay"))
         if not self.edfa_base_url:
             out.append(("EDFAPAY_ENV", "اكتب sandbox أو production"))
