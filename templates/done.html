@@ -14,8 +14,11 @@
   <p>تم استلام المبلغ. شكراً لك.</p>
   {% elif waiting %}
   <p class="pulse" role="status">ننتظر تأكيد البنك. تتحدث هذه الصفحة تلقائياً خلال ثوانٍ.</p>
+  {% elif inv.status == 'pending' and inv.last_error %}
+  <p class="alert" role="alert">لم تتم عملية الدفع. {{ inv.last_error|why }}</p>
+  <a class="primary" href="{{ url_for('pub.invoice', token=inv.token) }}">حاول الدفع مرة أخرى</a>
   {% elif inv.status == 'pending' %}
-  <p class="alert" role="alert">لم يصلنا تأكيد بالدفع.{% if inv.last_error %} سبب الرفض: {{ inv.last_error }}.{% endif %} إن خُصم المبلغ من حسابك فتواصل مع {{ store_name }} قبل إعادة المحاولة.</p>
+  <p class="alert" role="alert">لم يصلنا تأكيد بالدفع. إن خُصم المبلغ من حسابك فتواصل مع {{ store_name }} قبل إعادة المحاولة.</p>
   <a class="primary" href="{{ url_for('pub.invoice', token=inv.token) }}">حاول الدفع مرة أخرى</a>
   {% else %}
   <p class="alert">هذا الرابط لم يعد صالحاً للدفع.</p>

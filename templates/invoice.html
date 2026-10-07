@@ -26,7 +26,7 @@
     {% if inv.scheme %}<div><dt>البطاقة</dt><dd>{{ inv.scheme }}</dd></div>{% endif %}
     {% if inv.rrn %}<div><dt>المرجع البنكي</dt><dd><bdi>{{ inv.rrn }}</bdi></dd></div>{% endif %}
     {% if inv.txn %}<div><dt>رقم العملية</dt><dd><bdi class="tiny">{{ inv.txn }}</bdi></dd></div>{% endif %}
-    {% if inv.last_error %}<div><dt>آخر رفض</dt><dd>{{ inv.last_error }}</dd></div>{% endif %}
+    {% if inv.last_error %}<div><dt>آخر رفض</dt><dd>{{ inv.last_error|why }}{% if inv.last_error not in inv.last_error|why %}<br><bdi class="muted">{{ inv.last_error }}</bdi>{% endif %}</dd></div>{% endif %}
   </dl>
   <div class="actions">
     {% if inv.txn or inv.checkout %}

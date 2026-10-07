@@ -10,7 +10,8 @@
   <p class="muted">فاتورة رقم <bdi>{{ inv.id }}</bdi></p>
   <hr class="tear">
   {% if inv.status == 'pending' %}
-  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>
+  {% elif inv.last_error %}<p class="alert" role="alert">آخر محاولة دفع لم تتم. {{ inv.last_error|why }}</p>{% endif %}
   <form method="post" action="{{ url_for('pub.pay', token=inv.token) }}">
     {% if 'name' in need %}<label for="name">الاسم</label>
     <input id="name" name="name" autocomplete="name" maxlength="80" required value="{{ form.name }}">{% endif %}

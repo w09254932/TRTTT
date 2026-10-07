@@ -5,6 +5,7 @@ import re
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
 import legacy_flow
+from declines import specific
 from edfapay import GatewayError
 from security import client_ip, too_many
 from validate import clean_email, clean_name, clean_phone
@@ -85,12 +86,15 @@ def done(token):
     inv, outcome = _invoice(token), None
     if svc().gateway.legacy and inv["status"] == "pending":
         outcome = legacy_flow.poll(inv)
-        if outcome in legacy_flow.PAID:
+        if outcome in legacy_flow.PAID or outcome == "failed":
             inv = svc().store.by_token(token)
     tries = request.args.get("n", "0")
     tries = int(tries) if tries.isdigit() and len(tries) < 3 else 0
+    reason = inv.get("last_error")
+    # A bare "declined" is usually followed within seconds by the gateway's notice with the exact reason.
+    settling = bool(reason) and not specific(reason) and tries < 2
     waiting = (inv["status"] == "pending" and request.args.get("r") != "fail" and tries < 12
-               and outcome != "failed")
+               and (not reason or settling))
     again = url_for(".done", token=token, r="ok", n=tries + 1)
     return render_template("done.html", inv=inv, waiting=waiting, again=again, brand=svc().brand.get())
 

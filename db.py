@@ -126,6 +126,17 @@ class Store:
 
         self._run(work)
 
+    def note_error(self, inv_id, reason):
+        """Keeps why the last payment attempt failed, unless a reason is already recorded for it."""
+        ref = self.invoices.document(inv_id)
+
+        def work(tx):
+            inv = _read(tx, ref).to_dict() or {}
+            if inv.get("status") == "pending" and not inv.get("last_error"):
+                tx.update(ref, {"last_error": reason})
+
+        self._run(work)
+
     def set_customer(self, inv_id, customer):
         self.invoices.document(inv_id).update({"customer": customer})
 
@@ -150,7 +161,7 @@ class Store:
                     or (last and (moment - last).total_seconds() < 3)):
                 return None
             number = inv.get("attempts", 0) + 1
-            changes = {"attempts": number, "last_attempt_at": moment}
+            changes = {"attempts": number, "last_attempt_at": moment, "last_error": ""}
             if private:
                 changes["enc"] = self.vault.seal(private, inv_id)
             tx.update(ref, changes)
@@ -199,7 +210,7 @@ class Store:
                 else:
                     note = "refund_without_payment"
             elif ev["status"] == "Declined" and kind in ("Purchase", "Authorization") and status == "pending":
-                changes = {"last_error": ev["reason"] or "رفضت البوابة العملية", "txn": ev["txn"],
+                changes = {"last_error": ev["reason"] or "DECLINED", "txn": ev["txn"],
                            "declines": firestore.Increment(1)}
                 counters = {"declines": 1}
             tx.set(ev_ref, {"invoice": inv_id, "at": moment, "note": note, **ev})

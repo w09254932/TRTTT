@@ -8,6 +8,7 @@ from flask import Flask, render_template, request
 from werkzeug.exceptions import HTTPException
 
 from config import Config
+from declines import explain
 from db import KSA, Store, make_client
 from edfapay import EdfaPay
 from edfapay_legacy import EdfaPayLegacy
@@ -58,6 +59,8 @@ def create_app(cfg=None, client=None):
     @app.template_filter("money")
     def money(value):
         return f"{float(value or 0):,.2f}"
+
+    app.add_template_filter(explain, "why")
 
     @app.template_filter("when")
     def when(value, fmt="%Y-%m-%d %H:%M"):
