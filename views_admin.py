@@ -120,7 +120,7 @@ def create():
     goods, goods_error = clean_goods(form.get("goods", ""))
     error = error or goods_error
     saved = svc().book.get(form.get("customer", "")) or {}
-    phone = partial(clean_phone, region=form.get("cc"))
+    phone = partial(clean_phone, code=form.get("cc"))
     for field, clean in (("name", clean_name), ("phone", phone), ("email", clean_email)):
         value = form.get(field, "").strip() or saved.get(field, "")
         if not error and value:

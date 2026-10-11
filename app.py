@@ -5,6 +5,7 @@ from datetime import timedelta
 from types import SimpleNamespace
 
 from flask import Flask, render_template, request
+from markupsafe import Markup
 from werkzeug.exceptions import HTTPException
 
 import phones
@@ -22,6 +23,7 @@ WORDS_AR = {"Purchase": "عملية دفع", "Authorization": "حجز مبلغ",
             "Void": "إلغاء حجز", "Approved": "مقبولة", "Declined": "مرفوضة", "Pending": "قيد المعالجة",
             "Redirect": "بانتظار تحقق العميل", "amount_mismatch": "المبلغ لا يطابق الفاتورة فلم تُحتسب",
             "already_paid": "الفاتورة مدفوعة من قبل", "refund_without_payment": "استرداد لفاتورة غير مدفوعة"}
+PHONE_CODES = Markup(phones.CODES_JSON)   # static data, built from the country table only
 ERRORS_AR = {400: "الطلب غير صحيح.", 404: "الصفحة غير موجودة.", 405: "الطلب غير مسموح.",
              413: "البيانات المرسلة أكبر من المسموح.", 429: "طلبات كثيرة. انتظر دقيقة ثم حاول مرة أخرى."}
 
@@ -57,8 +59,8 @@ def create_app(cfg=None, client=None):
     @app.context_processor
     def shared():
         return {"store_name": cfg.store_name, "csrf_token": csrf_token, "status_ar": STATUS_AR, "words": WORDS_AR,
-                "phone_groups": phones.GROUPS, "phone_countries": phones.COUNTRIES, "phone_default": phones.DEFAULT,
-                "phone_examples": phones.EXAMPLES, "phone_face": phones.face}
+                "phone_code": phones.code_of, "phone_flag": phones.flag, "phone_label": phones.label,
+                "phone_examples": phones.EXAMPLES, "phone_codes": PHONE_CODES}
 
     @app.template_filter("money")
     def money(value):

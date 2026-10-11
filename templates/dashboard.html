@@ -46,7 +46,7 @@
     <p class="wide"><label for="customer">عميل محفوظ</label>
       <select id="customer" name="customer" data-fill>
         <option value="">عميل جديد</option>{% for p in people %}
-        {% set cc, local = p.phone|phone_parts %}<option value="{{ p.id }}" data-name="{{ p.name }}" data-country="{{ cc }}" data-phone="{{ local }}" data-email="{{ p.email }}" {{ 'selected' if chosen == p.id }}>{{ p.name or 'بدون اسم' }} &lrm;{{ p.phone|phone }}&lrm;</option>{% endfor %}
+        {% set code, local = p.phone|phone_parts %}<option value="{{ p.id }}" data-name="{{ p.name }}" data-code="{{ code }}" data-phone="{{ local }}" data-email="{{ p.email }}" {{ 'selected' if chosen == p.id }}>{{ p.name or 'بدون اسم' }} &lrm;{{ p.phone|phone }}&lrm;</option>{% endfor %}
       </select></p>
     {% endif %}
     <p class="wide hint">بيانات العميل اختيارية. ما تتركه فارغاً يكتبه العميل قبل الدفع.</p>

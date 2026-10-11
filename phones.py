@@ -1,5 +1,6 @@
-"""Phone numbers: the country-code picker, reading what people type, and showing a number with its
+"""Phone numbers: the country code box, reading what people type, and showing a number with its
 country. Numbers are kept in international form (E.164), e.g. +201001234567."""
+import json
 import re
 
 import phonenumbers
@@ -8,9 +9,6 @@ from phonenumbers import NumberParseException, PhoneNumberFormat, PhoneNumberTyp
 from validate import western
 
 DEFAULT = "SA"
-# Arab League members come first in the picker, Saudi Arabia on top.
-ARAB = {"SA", "AE", "BH", "DJ", "DZ", "EG", "IQ", "JO", "KM", "KW", "LB", "LY", "MA", "MR", "OM", "PS",
-        "QA", "SD", "SO", "SY", "TN", "YE"}
 # Arabic names (CLDR) of every country the phone library knows, a few shortened.
 NAMES = {
     "AC": "جزيرة أسينشيون", "AD": "أندورا", "AE": "الإمارات", "AF": "أفغانستان",
@@ -71,13 +69,7 @@ _JUNK = re.compile(r"[\s\-().\u200e\u200f\u202a-\u202e\u2066-\u2069]")
 
 
 def flag(iso):
-    return "".join(chr(0x1F1E6 + ord(letter) - 65) for letter in iso)
-
-
-def _order(iso):
-    """Alphabetical the way Arabic lists are read: without "ال" and without hamza or vowel marks."""
-    name = re.sub("[\u064b-\u0652]", "", NAMES[iso])
-    return (name[2:] if name.startswith("ال") else name).translate(str.maketrans("أإآٱىة", "اااايه"))
+    return "".join(chr(0x1F1E6 + ord(letter) - 65) for letter in iso) if iso else ""
 
 
 def _example(iso):
@@ -87,28 +79,33 @@ def _example(iso):
 
 COUNTRIES = {iso: (phonenumbers.country_code_for_region(iso), name) for iso, name in NAMES.items()
              if phonenumbers.country_code_for_region(iso)}
-# Where several countries share a code (+1, +7, +44...), the one a typed "+1" should pick.
-_MAIN = {phonenumbers.region_code_for_country_code(dial) for dial, _ in COUNTRIES.values()}
+EXAMPLES = {iso: _example(iso) for iso in COUNTRIES}
+# The code people type and the country it shows. Where countries share a code (+1, +7, +44...) the main one
+# is shown; the number itself still decides, so a Canadian +1 number is kept as Canadian.
+CODES = {str(dial): phonenumbers.region_code_for_country_code(dial) for dial, _ in COUNTRIES.values()}
+# What the page needs to show the country while the code is typed: code -> [country, name, example],
+# as JSON that is safe inside a <script type="application/json"> block.
+CODES_JSON = json.dumps({code: [iso, NAMES[iso], EXAMPLES[iso]] for code, iso in sorted(CODES.items())},
+                        ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
 
-def _option(iso):
-    dial, name = COUNTRIES[iso]
-    shared = len(phonenumbers.region_codes_for_country_code(dial)) > 1
-    return {"iso": iso, "dial": dial, "label": f"{flag(iso)} {name} {LRM}+{dial}", "example": _example(iso),
-            "main": shared and iso in _MAIN}
+def code_of(value):
+    """The country code typed next to the number, as (digits, country): ("966", "SA"), ("20", "EG"), or
+    ("999", None) for a code no country has. Empty means Saudi Arabia. Pages from before the code box sent
+    the country's letters ("EG"); those still work."""
+    text = western(str(value or "")).strip().lstrip("+").upper()
+    if text in COUNTRIES:
+        return str(COUNTRIES[text][0]), text
+    digits = re.sub(r"\D", "", text).lstrip("0")[:4]
+    if not digits:
+        return str(COUNTRIES[DEFAULT][0]), DEFAULT
+    return digits, CODES.get(digits)
 
 
-GROUPS = (
-    ("الدول العربية", [_option(iso) for iso in sorted(ARAB & COUNTRIES.keys(), key=lambda i: (i != DEFAULT, _order(i)))]),
-    ("باقي الدول", [_option(iso) for iso in sorted(COUNTRIES.keys() - ARAB, key=_order)]),
-)
-EXAMPLES = {option["iso"]: option["example"] for _, options in GROUPS for option in options}
-
-
-def face(iso):
-    """What the closed picker shows: the flag and the code."""
-    iso = iso if iso in COUNTRIES else DEFAULT
-    return f"{flag(iso)} +{COUNTRIES[iso][0]}"
+def label(value):
+    """What shows under the boxes for a typed code: the country's name."""
+    _, iso = code_of(value)
+    return NAMES[iso] if iso else "رمز دولة غير معروف"
 
 
 def _read(text, region, good_enough):
@@ -130,11 +127,11 @@ def _mobile_length(number):
     return reason == ValidationResult.IS_POSSIBLE
 
 
-def clean_phone(value, region=None):
-    """Returns (number in E.164, None) or (None, error message). `region` is the country picked next to the
-    number. A number typed with its own code keeps that code: +20..., 0020..., or 20... when it cannot be a
-    number of the picked country."""
-    region = region if region in COUNTRIES else DEFAULT
+def clean_phone(value, code=None):
+    """Returns (number in E.164, None) or (None, error message). `code` is the country code typed next to
+    the number. A number typed with its own code keeps that code: +20..., 0020..., or 20... when it cannot
+    be a number of the typed code's country."""
+    digits, region = code_of(code)
     text = _JUNK.sub("", western(value)).replace("\uff0b", "+")
     if text.startswith("00"):
         text = "+" + text[2:]
@@ -145,15 +142,16 @@ def clean_phone(value, region=None):
     if text.startswith("+"):
         number = _read(text, None, _any_length)
     else:
-        number = (_read(text, region, _mobile_length)
+        number = ((region and _read(text, region, _mobile_length))
                   or _read("+" + text, None, phonenumbers.is_valid_number))
     phone = phonenumbers.format_number(number, PhoneNumberFormat.E164) if number else ""
     if region_of(phone):
         return phone, None
     if text.startswith("+"):
         return None, BAD + " تأكد من رمز الدولة وعدد الأرقام."
-    dial, name = COUNTRIES[region]
-    return None, f"رقم الجوال لا يناسب {name} ({LRM}+{dial}). اختر دولة رقمك من القائمة، أو اكتبه مع رمز دولته."
+    if not region:
+        return None, f"رمز الدولة {LRM}+{digits} غير صحيح. اكتب رمز دولتك، مثل 966 للسعودية."
+    return None, f"رقم الجوال لا يناسب {NAMES[region]} ({LRM}+{digits}). تأكد من رمز الدولة ومن الرقم."
 
 
 def _parsed(phone):
@@ -174,11 +172,11 @@ def region_of(phone):
 
 
 def parts(phone):
-    """(country, the rest of the number), to put a stored number back into the picker and its box."""
-    number, iso = _parsed(phone), region_of(phone)
-    if not number or not iso:
-        return DEFAULT, phone or ""
-    return iso, phonenumbers.national_significant_number(number)
+    """(country code, the rest of the number), to put a stored number back into the two boxes."""
+    number = _parsed(phone)
+    if not number or not region_of(phone):
+        return str(COUNTRIES[DEFAULT][0]), phone or ""
+    return str(number.country_code), phonenumbers.national_significant_number(number)
 
 
 def pretty(phone):

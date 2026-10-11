@@ -33,6 +33,8 @@ KNOWN = (
      "تعذر الاتصال بالبنك الآن. حاول بعد دقائق."),
     ((r"do not honou?r", r"refer to", r"\b01\b", r"\b05\b"),
      "رفض البنك العملية دون ذكر السبب. تواصل مع بنكك أو استخدم بطاقة أخرى."),
+    ((r"txn ?processing",),         # EdfaPay's "Declined by TxnProcessing" names no cause
+     GENERAL),
 )
 
 

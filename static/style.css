@@ -101,20 +101,22 @@ span.hint { display: block; margin-top: .25rem; }
 .goods-form textarea { margin-bottom: .75rem; }
 input.code { font-size: 1.5rem; letter-spacing: .3em; text-align: center; }
 
-/* phone number: the country code picker, then the number */
-.tel { display: flex; gap: .5rem; margin-bottom: 1rem; }
-.tel .cc { position: relative; flex: none; width: 6.25rem; }
-.tel .cc select { padding: 0 .5rem; }
-.tel input { flex: 1 1 auto; min-width: 0; padding: 0 .6rem; }
-.receipt .tel input, .grid .tel { margin-bottom: 0; }
-.tel .face { display: none; }
-.js .tel .face {
-  display: flex; align-items: center; justify-content: space-between; gap: .25rem; height: 100%; padding: 0 .5rem;
-  background: #fff; border: 1px solid #9aa5b5; border-radius: 8px; white-space: nowrap; pointer-events: none;
+/* phone number: the country code box, then the number, then the country of the code */
+.tel { display: flex; gap: .5rem; }
+.tel .cc {
+  display: flex; align-items: center; flex: none; width: 6.25rem; min-height: 48px; margin: 0;
+  padding: 0 .6rem; font-size: 1rem; font-weight: 400; background: #fff; border: 1px solid #9aa5b5;
+  border-radius: 8px; cursor: text;
 }
-.js .tel .face::after { content: ""; margin-top: 5px; border: 5px solid transparent; border-top-color: var(--muted); }
-.js .tel .cc select { position: absolute; inset: 0; height: 100%; opacity: 0; cursor: pointer; }
-.js .tel .cc:focus-within .face { outline: 3px solid #e0a100; outline-offset: 2px; }
+.tel .cc:focus-within { outline: 3px solid #e0a100; outline-offset: 2px; }
+.tel .cc input { width: 100%; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0; background: none; }
+.tel .cc input:focus-visible { outline: none; }
+.tel .flag { flex: none; min-width: 1.4em; margin-inline-end: .3rem; }
+.tel > input { flex: 1 1 auto; min-width: 0; padding: 0 .6rem; }
+.receipt .tel input { margin-bottom: 0; }
+.tel-country { display: block; min-height: 1.5em; margin: .25rem 0 1rem; font-size: .875rem; color: var(--muted); text-align: left; }
+.tel-country.bad { color: var(--red); }
+.grid .tel-country { margin-bottom: 0; }
 
 /* sign in and messages */
 .gate { max-width: 380px; margin: 12vh auto 0; padding: 1.5rem; }
