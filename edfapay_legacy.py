@@ -2,14 +2,23 @@
 (api.edfapay.com/payment/...). A payment counts only when EdfaPay's status API says it is settled."""
 import hashlib
 import ipaddress
+import logging
 from urllib.parse import urlparse
 
 import requests
 
 from edfapay import GatewayError
+from phones import region_of
 
+log = logging.getLogger(__name__)
+HOME = "SA"
 # The checkout API requires a billing address; invoices do not collect one, so these fixed values are sent.
-PAYER_PLACE = {"payer_country": "SA", "payer_city": "Riyadh", "payer_address": "Riyadh", "payer_zip": "12221"}
+# The country sent with them is the country of the customer's phone number.
+PAYER_PLACE = {"payer_city": "Riyadh", "payer_address": "Riyadh", "payer_zip": "12221"}
+
+
+class Refused(GatewayError):
+    """EdfaPay answered, but did not open a checkout."""
 
 
 def _digest(text):
@@ -37,7 +46,18 @@ class EdfaPayLegacy:
         return resp.status_code, body if isinstance(body, dict) else {}
 
     def initiate(self, order_id, amount, customer, success_url, failure_url=None, payer_ip=None):
-        """Opens a checkout session and returns the URL the customer must be sent to."""
+        """Opens a checkout session and returns the URL the customer must be sent to. The payer's country is
+        the country of their phone number; if EdfaPay refuses it, the request is sent once more as Saudi."""
+        country = region_of(customer.get("phone")) or HOME
+        try:
+            return self._open(order_id, amount, customer, success_url, payer_ip, country)
+        except Refused as exc:
+            if country == HOME:
+                raise
+            log.warning("edfapay refused payer_country %s (%s); sending %s instead", country, exc, HOME)
+            return self._open(order_id, amount, customer, success_url, payer_ip, HOME)
+
+    def _open(self, order_id, amount, customer, success_url, payer_ip, country):
         amount_text = f"{amount:.2f}"
         description = "Invoice " + order_id.partition("x")[0]
         first, _, last = customer["name"].partition(" ")
@@ -56,6 +76,7 @@ class EdfaPayLegacy:
             "payer_first_name": first,
             "payer_last_name": last or first,
             **PAYER_PLACE,
+            "payer_country": country,
             "payer_email": customer["email"],
             "payer_phone": customer["phone"].lstrip("+"),
             "payer_ip": ip,
@@ -70,7 +91,7 @@ class EdfaPayLegacy:
         host = parts.hostname or ""
         if parts.scheme != "https" or not (host == "edfapay.com" or host.endswith(".edfapay.com")):
             reason = body.get("error_message") or body.get("message") or body.get("errors") or sorted(body)
-            raise GatewayError(f"HTTP {code}: {str(reason)[:300]}")
+            raise Refused(f"HTTP {code}: {str(reason)[:300]}")
         return url
 
     def status(self, order_id, payment_id):

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from flask import Flask, render_template, request
 from werkzeug.exceptions import HTTPException
 
+import phones
 from config import Config
 from declines import explain
 from db import KSA, Store, make_client
@@ -55,7 +56,9 @@ def create_app(cfg=None, client=None):
 
     @app.context_processor
     def shared():
-        return {"store_name": cfg.store_name, "csrf_token": csrf_token, "status_ar": STATUS_AR, "words": WORDS_AR}
+        return {"store_name": cfg.store_name, "csrf_token": csrf_token, "status_ar": STATUS_AR, "words": WORDS_AR,
+                "phone_groups": phones.GROUPS, "phone_countries": phones.COUNTRIES, "phone_default": phones.DEFAULT,
+                "phone_examples": phones.EXAMPLES, "phone_face": phones.face}
 
     @app.template_filter("money")
     def money(value):
@@ -64,6 +67,9 @@ def create_app(cfg=None, client=None):
     app.add_template_filter(explain, "why")
     app.add_template_filter(mask, "mask")
     app.add_template_filter(hint, "mailhint")
+    app.add_template_filter(phones.pretty, "phone")
+    app.add_template_filter(phones.country, "phone_country")
+    app.add_template_filter(phones.parts, "phone_parts")
 
     @app.template_filter("when")
     def when(value, fmt="%Y-%m-%d %H:%M"):

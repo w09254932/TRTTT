@@ -3,3 +3,4 @@ gunicorn==26.2.0
 google-cloud-firestore==2.34.0
 cryptography==50.0.2
 requests==2.34.2
+phonenumberslite==9.0.40

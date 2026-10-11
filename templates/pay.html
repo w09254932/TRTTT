@@ -17,7 +17,7 @@
     {% if 'name' in need %}<label for="name">الاسم</label>
     <input id="name" name="name" autocomplete="name" maxlength="80" required value="{{ form.name }}">{% endif %}
     {% if 'phone' in need %}<label for="phone">رقم الجوال</label>
-    <input id="phone" name="phone" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="05xxxxxxxx" required value="{{ form.phone }}">{% endif %}
+    {% with phone_id="phone", phone_value=form.phone, phone_cc=form.cc, phone_required=true %}{% include "phone.html" %}{% endwith %}{% endif %}
     {% if 'email' in need %}<label for="email">البريد الإلكتروني{% if inv.has_goods and mailing %} (يصلك عليه طلبك){% endif %}</label>
     <input id="email" name="email" type="email" autocomplete="email" dir="ltr" required value="{{ form.email }}">{% endif %}
     <button class="primary" type="submit">ادفع {{ inv.amount|money }} ر.س</button>

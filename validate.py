@@ -41,21 +41,6 @@ def clean_goods(value):
     return text, None
 
 
-def clean_phone(value):
-    value = re.sub(r"[\s\-()]", "", western(value))
-    if value.startswith("00"):
-        value = "+" + value[2:]
-    if re.fullmatch(r"05\d{8}", value):
-        value = "+966" + value[1:]
-    elif re.fullmatch(r"5\d{8}", value):
-        value = "+966" + value
-    elif not value.startswith("+"):
-        value = "+" + value
-    if re.fullmatch(r"\+\d{8,15}", value):
-        return value, None
-    return None, "رقم الجوال غير صحيح. مثال: 0512345678"
-
-
 def clean_amount(value):
     try:
         amount = Decimal(western(value).replace(",", "").strip()).quantize(Decimal("0.01"))

@@ -4,7 +4,7 @@
 <section class="sheet">
   <h1>{{ who.name or 'بدون اسم' }}</h1>
   <dl class="facts">
-    <div><dt>الجوال</dt><dd><bdi>{{ who.phone }}</bdi></dd></div>
+    <div><dt>الجوال</dt><dd><bdi>{{ who.phone|phone }}</bdi> <small class="muted">{{ who.phone|phone_country }}</small></dd></div>
     <div><dt>البريد</dt><dd><bdi>{{ who.email or 'غير مسجل' }}</bdi></dd></div>
     <div><dt>الفواتير</dt><dd>{{ rows|length }}، المدفوع منها {{ paid }}، بانتظار الدفع {{ waiting }}</dd></div>
     <div><dt>إجمالي ما دفعه</dt><dd>{{ total|money }} ر.س</dd></div>

@@ -1,0 +1,17 @@
+{#- The country code, then the number. Set before including: phone_id, phone_value, phone_cc, phone_required
+    and, where the browser must not offer the visitor's own number, phone_fill="off". -#}
+{%- set cc = phone_cc if phone_cc in phone_countries else phone_default -%}
+<span class="tel" dir="ltr">
+  <span class="cc">
+    <select id="{{ phone_id }}-cc" name="cc" aria-label="رمز الدولة" dir="rtl" data-cc>
+      {%- for title, options in phone_groups %}
+      <optgroup label="{{ title }}">
+        {%- for o in options %}<option value="{{ o.iso }}" data-dial="{{ o.dial }}" data-example="{{ o.example }}"{% if o.main %} data-main{% endif %}{% if o.iso == cc %} selected{% endif %}>{{ o.label }}</option>{% endfor %}
+      </optgroup>
+      {%- endfor %}
+    </select>
+    <span class="face" aria-hidden="true">{{ phone_face(cc) }}</span>
+  </span>
+  <input id="{{ phone_id }}" name="phone" inputmode="tel" autocomplete="{{ phone_fill or 'tel' }}" dir="ltr" maxlength="24" data-phone
+         placeholder="{{ phone_examples.get(cc, '') }}" value="{{ phone_value or '' }}"{% if phone_required %} required{% endif %}>
+</span>

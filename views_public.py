@@ -8,8 +8,9 @@ import legacy_flow
 from declines import specific
 from edfapay import GatewayError
 from notices import settle
+from phones import clean_phone
 from security import client_ip, too_many
-from validate import clean_email, clean_name, clean_phone
+from validate import clean_email, clean_name
 
 pub = Blueprint("pub", __name__)
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24}$")
@@ -58,7 +59,8 @@ def pay(token):
     customer, payer = dict(inv["fixed"]), {}
     for field, clean in CLEANERS.items():
         if not customer.get(field):
-            value, error = clean(request.form.get(field, ""))
+            country = (request.form.get("cc"),) if field == "phone" else ()
+            value, error = clean(request.form.get(field, ""), *country)
             if error:
                 return _page(inv, request.form, error, 400)
             customer[field] = payer[field] = value

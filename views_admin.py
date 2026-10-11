@@ -1,6 +1,7 @@
 """Owner-only pages: sign in, statistics, creating and following invoices."""
 import math
 from datetime import datetime, timezone
+from functools import partial
 from urllib.parse import quote
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
@@ -9,8 +10,9 @@ import legacy_flow
 import notices
 from edfapay import GatewayError
 from mailer import hint
+from phones import clean_phone
 from security import check_csrf, check_owner, ip_key, sign_in, signed_in, too_many
-from validate import clean_amount, clean_email, clean_goods, clean_name, clean_phone, clean_text
+from validate import clean_amount, clean_email, clean_goods, clean_name, clean_text
 
 admin = Blueprint("admin", __name__)
 VALID_DAYS = (1, 3, 7, 14, 30)
@@ -118,7 +120,8 @@ def create():
     goods, goods_error = clean_goods(form.get("goods", ""))
     error = error or goods_error
     saved = svc().book.get(form.get("customer", "")) or {}
-    for field, clean in (("name", clean_name), ("phone", clean_phone), ("email", clean_email)):
+    phone = partial(clean_phone, region=form.get("cc"))
+    for field, clean in (("name", clean_name), ("phone", phone), ("email", clean_email)):
         value = form.get(field, "").strip() or saved.get(field, "")
         if not error and value:
             private[field], error = clean(value)

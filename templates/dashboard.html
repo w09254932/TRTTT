@@ -46,13 +46,13 @@
     <p class="wide"><label for="customer">عميل محفوظ</label>
       <select id="customer" name="customer" data-fill>
         <option value="">عميل جديد</option>{% for p in people %}
-        <option value="{{ p.id }}" data-name="{{ p.name }}" data-phone="{{ p.phone }}" data-email="{{ p.email }}" {{ 'selected' if chosen == p.id }}>{{ p.name or 'بدون اسم' }} &lrm;{{ p.phone }}&lrm;</option>{% endfor %}
+        {% set cc, local = p.phone|phone_parts %}<option value="{{ p.id }}" data-name="{{ p.name }}" data-country="{{ cc }}" data-phone="{{ local }}" data-email="{{ p.email }}" {{ 'selected' if chosen == p.id }}>{{ p.name or 'بدون اسم' }} &lrm;{{ p.phone|phone }}&lrm;</option>{% endfor %}
       </select></p>
     {% endif %}
     <p class="wide hint">بيانات العميل اختيارية. ما تتركه فارغاً يكتبه العميل قبل الدفع.</p>
     <p><label for="name">اسم العميل</label><input id="name" name="name" maxlength="80" value="{{ form.name }}"></p>
     <p><label for="phone">جوال العميل</label>
-      <input id="phone" name="phone" inputmode="tel" dir="ltr" value="{{ form.phone }}"></p>
+      {% with phone_id="phone", phone_value=form.phone, phone_cc=form.cc, phone_required=false, phone_fill="off" %}{% include "phone.html" %}{% endwith %}</p>
     <p class="wide"><label for="email">بريد العميل</label>
       <input id="email" name="email" type="email" dir="ltr" value="{{ form.email }}"></p>
     <p class="wide"><label for="goods">طلب يُرسل للعميل بالإيميل بعد الدفع (اختياري)</label>

@@ -6,7 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from google.cloud import firestore
 
 from db import now
-from validate import clean_email, clean_name, clean_phone, western
+from validate import clean_email, clean_name, western
 from views_admin import guard
 
 book = Blueprint("book", __name__)
@@ -92,9 +92,10 @@ def people():
     rows, query = svc().book.recent(300), request.args.get("q", "").strip()[:60]
     if query:
         needle = western(query).lower()
-        as_phone = clean_phone(query)[0] or needle
+        # A number is found however it was typed: 0551234567, 551234567, +966 55..., 01001234567 for +20100...
+        digits = re.sub(r"\D", "", needle).lstrip("0")
         rows = [p for p in rows if needle in p["name"].lower() or needle in p["email"]
-                or needle in p["phone"] or as_phone in p["phone"]]
+                or (len(digits) >= 3 and digits in p["phone"])]
     return render_template("customers.html", rows=rows, query=query)
 
 
