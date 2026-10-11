@@ -12,6 +12,7 @@
   {% if inv.status == 'paid' %}
   <p class="stamp">مدفوعة</p>
   <p>تم استلام المبلغ. شكراً لك.</p>
+  {% include "delivered.html" %}
   {% elif waiting %}
   <p class="pulse" role="status">ننتظر تأكيد البنك. تتحدث هذه الصفحة تلقائياً خلال ثوانٍ.</p>
   {% elif inv.status == 'pending' and inv.last_error %}

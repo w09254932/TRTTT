@@ -1,11 +1,69 @@
 {% extends "admin.html" %}
-{% block title %}الشعار والألوان | {{ store_name }}{% endblock %}
+{% block title %}الإعدادات | {{ store_name }}{% endblock %}
 {% block main %}
-<section class="sheet">
-  <h1>الشعار والألوان</h1>
-  <p class="muted">تظهر للعميل في صفحة الدفع وصفحة نتيجة الدفع. قد يحتاج التغيير دقيقة حتى يظهر.</p>
-  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
-  <form method="post" enctype="multipart/form-data" class="grid">
+{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+<section class="sheet" id="email">
+  <h1>الإيميل</h1>
+  {% if mail.ready %}
+  <p>الرسائل تُرسل من <bdi>{{ mail.sender }}</bdi> عبر <bdi>{{ mail.server }}</bdi>.</p>
+  {% if mail.owner %}
+  <p class="muted">إشعار كل دفعة ورمز الدخول يصلان إلى <bdi>{{ mail.owner }}</bdi>. وطلب العميل يصل إلى بريده لحظة تأكيد الدفع.</p>
+  {% else %}
+  <p class="alert">أضف <code dir="ltr">OWNER_EMAIL</code> في Render ليصلك إشعار كل دفعة ولتستطيع تفعيل رمز الدخول.</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('twostep.test') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="quiet" type="submit">إرسال رسالة تجريبية</button>
+  </form>
+  {% else %}
+  <p class="muted">الإيميل غير مُعدّ بعد. أضف هذه المتغيرات في Render من تبويب Environment:</p>
+  <ul class="vars">{% for name, what in mail.problems %}<li><code dir="ltr">{{ name }}</code>{{ what }}</li>{% endfor %}</ul>
+  {% endif %}
+</section>
+
+<section class="sheet" id="code">
+  <h2>رمز الدخول بالإيميل</h2>
+  {% if mail.active %}
+  <p><span class="chip paid">مفعّل</span> بعد كلمة المرور يُطلب رمز يصل إلى <bdi>{{ mail.owner }}</bdi>.</p>
+  <form method="post" action="{{ url_for('twostep.off') }}" class="grid" data-confirm="بعد الإيقاف يكون الدخول بكلمة المرور وحدها. هل تريد الإيقاف؟">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p><label for="off-password">كلمة المرور لإيقافه</label>
+      <input id="off-password" name="password" type="password" autocomplete="current-password" dir="ltr" required></p>
+    <p class="wide"><button class="danger" type="submit">إيقاف رمز الدخول</button></p>
+  </form>
+  {% elif mail.confirming %}
+  <p>اكتب الرمز الذي وصل إلى <bdi>{{ mail.owner }}</bdi> لإكمال التفعيل.</p>
+  <form method="post" action="{{ url_for('twostep.confirm') }}" class="find">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="enable-code">الرمز</label>
+    <input class="code" id="enable-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" dir="ltr" required>
+    <button class="primary" type="submit">تفعيل</button>
+  </form>
+  <form method="post" action="{{ url_for('twostep.start') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="plain" type="submit">لم يصلك الرمز؟ أرسل رمزاً جديداً</button>
+  </form>
+  {% else %}
+  {% if mail.on %}
+  <p class="alert">متوقف الآن، والدخول بكلمة المرور وحدها: إعداد الإيميل ناقص أو تغيّر OWNER_EMAIL بعد التفعيل. فعّله من جديد بعد إكمال الإعداد.</p>
+  {% else %}
+  <p class="muted">بعد تفعيله يُطلب عند كل دخول رمز من 6 أرقام يصل إلى إيميلك، فلا تكفي كلمة المرور وحدها لمن عرفها.</p>
+  {% endif %}
+  {% if mail.ready and mail.owner %}
+  <form method="post" action="{{ url_for('twostep.start') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="primary" type="submit">تفعيل رمز الدخول</button>
+  </form>
+  {% else %}
+  <p class="muted">يحتاج إعداد الإيميل و <code dir="ltr">OWNER_EMAIL</code> أولاً.</p>
+  {% endif %}
+  {% endif %}
+</section>
+
+<section class="sheet" id="brand">
+  <h2>الشعار والألوان</h2>
+  <p class="muted">تظهر للعميل في صفحة الدفع وصفحة نتيجة الدفع وفي إيميل طلبه. قد يحتاج التغيير دقيقة حتى يظهر.</p>
+  <form method="post" action="{{ url_for('brand.save') }}" enctype="multipart/form-data" class="grid">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <p class="wide"><label for="logo">الشعار</label>
       {% if brand.logo %}<img class="preview" src="{{ url_for('brand.logo', v=brand.version) }}" alt="الشعار الحالي">{% endif %}
@@ -23,7 +81,7 @@
 </section>
 <section class="sheet">
   <h2>الرجوع للألوان الأصلية</h2>
-  <form method="post">
+  <form method="post" action="{{ url_for('brand.save') }}">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="primary" value="#0b6e5a">
     <input type="hidden" name="background" value="#edf0f4">

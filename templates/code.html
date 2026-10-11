@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}رمز الدخول | {{ store_name }}{% endblock %}
+{% block body %}
+<main class="gate">
+  <h1>رمز الدخول</h1>
+  <p class="muted">أرسلنا رمزاً من 6 أرقام إلى <bdi>{{ to }}</bdi>. الرمز صالح 10 دقائق.</p>
+  {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" autocomplete="off">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="code">الرمز</label>
+    <input class="code" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" dir="ltr" required autofocus>
+    <button class="primary" type="submit">دخول</button>
+  </form>
+  <form method="post" action="{{ url_for('twostep.resend') }}" class="again">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="plain" type="submit">لم يصلك الرمز؟ أرسل رمزاً جديداً</button>
+  </form>
+  <p class="again"><a href="{{ url_for('admin.login') }}">رجوع إلى صفحة الدخول</a></p>
+</main>
+{% endblock %}

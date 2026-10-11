@@ -55,6 +55,9 @@
       <input id="phone" name="phone" inputmode="tel" dir="ltr" value="{{ form.phone }}"></p>
     <p class="wide"><label for="email">بريد العميل</label>
       <input id="email" name="email" type="email" dir="ltr" value="{{ form.email }}"></p>
+    <p class="wide"><label for="goods">طلب يُرسل للعميل بالإيميل بعد الدفع (اختياري)</label>
+      <textarea id="goods" name="goods" rows="3" maxlength="2000" dir="auto" placeholder="مثل كود الشحن أو رابط التحميل">{{ form.goods }}</textarea>
+      <span class="hint">{{ 'يُحفظ مشفّراً، ويصل إلى بريد العميل لحظة تأكيد الدفع.' if mailing else 'يحتاج إعداد الإيميل أولاً، تجده في صفحة الإعدادات.' }}</span></p>
     <p class="wide"><button class="primary" type="submit">إنشاء رابط الدفع</button></p>
   </form>
 </section>

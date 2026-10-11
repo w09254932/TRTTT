@@ -7,6 +7,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 import legacy_flow
 from declines import specific
 from edfapay import GatewayError
+from notices import settle
 from security import client_ip, too_many
 from validate import clean_email, clean_name, clean_phone
 
@@ -35,9 +36,10 @@ def _invoice(token):
 
 
 def _page(inv, form=None, error=None, code=200):
-    need = [field for field in CLEANERS if not inv["private"].get(field)]
+    # Whatever the owner did not fill in is asked on every attempt, so a mistake can be corrected.
+    need = [field for field in CLEANERS if not inv["fixed"].get(field)]
     return render_template("pay.html", inv=inv, need=need, form=form or {}, error=error,
-                           brand=svc().brand.get()), code
+                           brand=svc().brand.get(), mailing=svc().mailer.ready), code
 
 
 @pub.get("/p/<token>")
@@ -53,18 +55,18 @@ def pay(token):
     inv = _invoice(token)
     if inv["status"] != "pending":
         return redirect(url_for(".invoice", token=token), 303)
-    customer, filled = dict(inv["private"]), False
+    customer, payer = dict(inv["fixed"]), {}
     for field, clean in CLEANERS.items():
         if not customer.get(field):
             value, error = clean(request.form.get(field, ""))
             if error:
                 return _page(inv, request.form, error, 400)
-            customer[field], filled = value, True
-    order_id = svc().store.start_attempt(inv["id"], customer if filled else None)
+            customer[field] = payer[field] = value
+    order_id = svc().store.start_attempt(inv["id"], payer or None)
     if not order_id:
         return _page(inv, request.form, BUSY, 429)
-    if filled:
-        linked = svc().book.remember(customer, new_invoice=not inv.get("customer"))
+    if payer:
+        linked = svc().book.remember(customer, new_invoice=not inv.get("customer"), overwrite=False)
         if linked and linked != inv.get("customer"):
             svc().store.set_customer(inv["id"], linked)
     back = f"{svc().cfg.base_url}/p/{token}/done"
@@ -73,8 +75,7 @@ def pay(token):
                                           payer_ip=client_ip())
     except GatewayError as exc:
         current_app.logger.error("edfapay initiate failed for %s: %s", order_id, exc)
-        inv["private"] = customer
-        return _page(inv, None, BUSY, 502)
+        return _page(inv, request.form, BUSY, 502)
     if svc().gateway.legacy:
         svc().store.note_checkout(inv["id"], order_id, checkout.rstrip("/").rsplit("/", 1)[-1][:64])
     return redirect(checkout, 303)
@@ -96,7 +97,8 @@ def done(token):
     waiting = (inv["status"] == "pending" and request.args.get("r") != "fail" and tries < 12
                and (not reason or settling))
     again = url_for(".done", token=token, r="ok", n=tries + 1)
-    return render_template("done.html", inv=inv, waiting=waiting, again=again, brand=svc().brand.get())
+    return render_template("done.html", inv=inv, waiting=waiting, again=again, brand=svc().brand.get(),
+                           mailing=svc().mailer.ready)
 
 
 @pub.post("/webhook/edfapay")
@@ -122,6 +124,6 @@ def webhook():
         }
     except (ValueError, TypeError, AttributeError):
         return {"ok": False}, 400
-    result = svc().store.apply_webhook(event)
+    result = settle(svc(), event)
     current_app.logger.info("webhook %s %s for %s: %s", event["type"], event["status"], event["order_id"], result)
     return {"ok": True, "result": result}

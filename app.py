@@ -12,6 +12,7 @@ from declines import explain
 from db import KSA, Store, make_client
 from edfapay import EdfaPay
 from edfapay_legacy import EdfaPayLegacy
+from mailer import Mailer, hint, mask
 from security import Vault, csrf_token, harden
 
 STATUS_AR = {"pending": "بانتظار الدفع", "paid": "مدفوعة", "cancelled": "ملغاة",
@@ -61,6 +62,8 @@ def create_app(cfg=None, client=None):
         return f"{float(value or 0):,.2f}"
 
     app.add_template_filter(explain, "why")
+    app.add_template_filter(mask, "mask")
+    app.add_template_filter(hint, "mailhint")
 
     @app.template_filter("when")
     def when(value, fmt="%Y-%m-%d %H:%M"):
@@ -86,15 +89,18 @@ def create_app(cfg=None, client=None):
     from brand import Brand, brand
     from customers import CustomerBook, book
     from legacy_flow import legacy
+    from twostep import LoginCodes, twostep
     from views_admin import admin
     from views_public import pub
     store = Store(client or make_client(cfg), vault)
     app.extensions["svc"] = SimpleNamespace(cfg=cfg, store=store, gateway=gateway,
-                                            book=CustomerBook(store.db, vault), brand=Brand(store.db))
+                                            book=CustomerBook(store.db, vault), brand=Brand(store.db),
+                                            mailer=Mailer(cfg), codes=LoginCodes(store.db, cfg))
     app.register_blueprint(admin)
     app.register_blueprint(pub)
     app.register_blueprint(book)
     app.register_blueprint(brand)
+    app.register_blueprint(twostep)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

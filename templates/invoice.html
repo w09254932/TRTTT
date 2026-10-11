@@ -26,6 +26,7 @@
     {% if inv.scheme %}<div><dt>البطاقة</dt><dd>{{ inv.scheme }}</dd></div>{% endif %}
     {% if inv.rrn %}<div><dt>المرجع البنكي</dt><dd><bdi>{{ inv.rrn }}</bdi></dd></div>{% endif %}
     {% if inv.txn %}<div><dt>رقم العملية</dt><dd><bdi class="tiny">{{ inv.txn }}</bdi></dd></div>{% endif %}
+    {% if (inv.notice or {}).state == 'failed' %}<div><dt>إيميل إشعار الدفع</dt><dd>لم يُرسل: {{ inv.notice.error|mailhint }}</dd></div>{% endif %}
     {% if inv.last_error %}<div><dt>آخر رفض</dt><dd>{{ inv.last_error|why }}{% if inv.last_error not in inv.last_error|why %}<br><bdi class="muted">{{ inv.last_error }}</bdi>{% endif %}</dd></div>{% endif %}
   </dl>
   <div class="actions">
@@ -42,6 +43,47 @@
     </form>
     {% endif %}
   </div>
+</section>
+<section class="sheet" id="order">
+  <h2>الطلب الذي يُرسل للعميل بالإيميل</h2>
+  {% if not mailing %}<p class="alert">الإيميل غير مُعدّ، فلن يُرسل شيء. تجد المطلوب في صفحة الإعدادات.</p>{% endif %}
+  {% if goods %}
+  {% set late = inv.status == 'paid' and (inv.paid_from or 'pending') != 'pending' %}
+  <p class="muted">{% if delivery.state == 'sent' %}أُرسل إلى <bdi>{{ inv.deliver_email }}</bdi> في <bdi class="nowrap">{{ delivery.at|when }}</bdi>.
+    {%- elif delivery.state == 'sending' %}يُرسل الآن.
+    {%- elif delivery.state == 'failed' %}لم يُرسل: {{ delivery.error|mailhint }}
+    {%- elif late %}لم يُرسل تلقائياً لأن الدفع وصل بعد أن صارت الفاتورة {{ status_ar[inv.paid_from] }}. أرسله إن كان ذلك صحيحاً.
+    {%- elif inv.status == 'pending' %}يُرسل تلقائياً إلى بريد العميل لحظة تأكيد الدفع.
+    {%- elif inv.status == 'paid' %}لم يُرسل بعد.
+    {%- else %}لن يُرسل لأن الفاتورة {{ status_ar[inv.status] }}.{% endif %}</p>
+  {% if inv.status == 'paid' and mailing and delivery.state != 'sending' %}
+  <form method="post" action="{{ url_for('admin.send_goods', inv_id=inv.id) }}" class="find gap"{% if delivery.state == 'sent' %} data-confirm="أُرسل الطلب من قبل. هل تريد إرساله مرة أخرى؟"{% endif %}>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="deliver-email">يُرسل إلى</label>
+    <input id="deliver-email" name="email" type="email" dir="ltr" maxlength="120" required value="{{ inv.deliver_email }}">
+    <button class="primary" type="submit">{{ 'إعادة الإرسال' if delivery.state == 'sent' else 'إرسال الآن' }}</button>
+  </form>
+  {% endif %}
+  {% elif inv.status in ('pending', 'paid') %}
+  <p class="muted">اكتب هنا كود الشحن أو رابط التحميل أو أي شيء يحتاجه العميل، ليصل إلى بريده لحظة تأكيد الدفع.</p>
+  {% else %}
+  <p class="muted">لا يوجد طلب لهذه الفاتورة.</p>
+  {% endif %}
+  {% if inv.status in ('pending', 'paid') %}
+  <form method="post" action="{{ url_for('admin.save_goods', inv_id=inv.id) }}" class="goods-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="goods">{{ 'الطلب (يمكنك تعديله)' if goods else 'الطلب' }}</label>
+    <textarea id="goods" name="goods" rows="3" maxlength="2000" dir="auto">{{ goods }}</textarea>
+    <button class="quiet" type="submit">حفظ الطلب</button>
+  </form>
+  {% elif goods %}
+  <pre class="goods" dir="auto">{{ goods }}</pre>
+  <form method="post" action="{{ url_for('admin.save_goods', inv_id=inv.id) }}" data-confirm="حذف الطلب من هذه الفاتورة نهائياً؟">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="goods" value="">
+    <button class="danger" type="submit">حذف الطلب</button>
+  </form>
+  {% endif %}
 </section>
 <section class="sheet">
   <h2>إشعارات بوابة الدفع</h2>

@@ -16,6 +16,7 @@ STAT_KEYS = ("links", "pending", "paid", "cancelled", "expired", "refunded",
              "paid_amount", "refunded_amount", "views", "attempts", "declines")
 MAX_ATTEMPTS = 25
 LOCK_SECONDS = 900
+SENDING_GRACE = 300  # an order email marked "sending" for longer than this is treated as lost
 
 
 def now():
@@ -56,17 +57,36 @@ class Store:
         ref = self.db.collection("daily").document(day_key())
         tx.set(ref, {k: firestore.Increment(v) for k, v in changes.items()}, merge=True)
 
+    def _payer(self, inv, inv_id):
+        """What the customer typed on the payment page: for the attempt that was paid, else the latest one."""
+        payers = inv.get("payers") or {}
+        if inv.get("paid_order"):
+            key = "a" + inv["paid_order"].partition("x")[2]
+        else:
+            key = max(payers, key=lambda k: int(k[1:]) if k[1:].isdigit() else 0, default="")
+        return self.vault.open(payers[key], f"payer:{inv_id}:{key}") if key in payers else {}
+
     def _load(self, snap):
         if not snap.exists:
             return None
         inv = snap.to_dict() or {}
         inv["id"] = snap.id
-        inv["private"] = self.vault.open(inv.get("enc", ""), snap.id)
+        # "fixed" is what the owner entered (never changed by the public page); "private" adds what the
+        # paying customer typed for the fields the owner left empty.
+        inv["fixed"] = self.vault.open(inv.get("enc", ""), snap.id)
+        payer = self._payer(inv, snap.id)
+        inv["private"] = {**payer, **{k: v for k, v in inv["fixed"].items() if v}}
         inv["overdue"] = inv.get("status") == "pending" and inv["expires_at"] <= now()
+        inv["has_goods"] = bool(inv.get("goods"))
+        override = self.vault.open(inv["deliver_to"], "deliver_to:" + snap.id) if inv.get("deliver_to") else {}
+        inv["deliver_email"] = override.get("email") or inv["private"].get("email", "")
+        sending = inv.get("delivery") or {}
+        if sending.get("state") == "sending" and (now() - sending["at"]).total_seconds() >= SENDING_GRACE:
+            inv["delivery"] = {**sending, "state": "failed", "error": "failed"}  # the worker sending it is gone
         return inv
 
     # ---- invoices
-    def create_invoice(self, amount, private, days, customer=None):
+    def create_invoice(self, amount, private, days, customer=None, goods=""):
         inv_id = "".join(secrets.choice(ID_CHARS) for _ in range(12))
         created = now()
         doc = {
@@ -77,6 +97,8 @@ class Store:
         }
         if customer:
             doc["customer"] = customer
+        if goods:
+            doc["goods"] = self._seal_goods(goods, inv_id)
 
         def work(tx):
             tx.set(self.invoices.document(inv_id), doc)
@@ -137,6 +159,74 @@ class Store:
 
         self._run(work)
 
+    # ---- the order emailed to the customer after payment (a code, a link...), encrypted on its own
+    def _seal_goods(self, text, inv_id):
+        return self.vault.seal({"text": text}, "goods:" + inv_id)
+
+    def goods(self, inv):
+        return self.vault.open(inv["goods"], "goods:" + inv["id"]).get("text", "") if inv.get("goods") else ""
+
+    def set_goods(self, inv_id, text):
+        """Replaces the order of an open or paid invoice; clearing it is always possible.
+        Returns False when the invoice is closed and the order cannot be changed."""
+        ref = self.invoices.document(inv_id)
+
+        def work(tx):
+            if text and (_read(tx, ref).to_dict() or {}).get("status") not in ("pending", "paid"):
+                return False
+            tx.update(ref, {"goods": self._seal_goods(text, inv_id) if text else firestore.DELETE_FIELD})
+            return True
+
+        return self._run(work)
+
+    def claim_delivery(self, inv_id, again=False):
+        """Marks the order of a paid invoice as being sent, so it is never sent twice by accident.
+        Sent on its own only when the invoice was still open when it was paid (not after a cancel).
+        Returns the invoice, or None when there is nothing to send now."""
+        ref = self.invoices.document(inv_id)
+
+        def work(tx):
+            inv, moment = self._load(_read(tx, ref)), now()
+            if not inv or inv.get("status") != "paid" or not inv.get("goods"):
+                return None
+            if not again and inv.get("paid_from", "pending") != "pending":
+                return None
+            last = inv.get("delivery") or {}
+            if last.get("state") == "sending" and (moment - last["at"]).total_seconds() < SENDING_GRACE:
+                return None
+            if last.get("state") == "sent" and not again:
+                return None
+            inv["delivery"] = {"state": "sending", "at": moment, "tries": last.get("tries", 0) + 1}
+            tx.update(ref, {"delivery": inv["delivery"]})
+            return inv
+
+        return self._run(work)
+
+    def finish_delivery(self, inv_id, tries, state, error=""):
+        self.invoices.document(inv_id).update(
+            {"delivery": {"state": state, "at": now(), "tries": tries, "error": error}})
+
+    def claim_notice(self, inv_id):
+        """True once per paid invoice: the owner hears about each payment exactly once."""
+        ref = self.invoices.document(inv_id)
+
+        def work(tx):
+            inv = _read(tx, ref).to_dict() or {}
+            if inv.get("status") != "paid" or inv.get("notice"):
+                return False
+            tx.update(ref, {"notice": {"state": "sending", "at": now()}})
+            return True
+
+        return self._run(work)
+
+    def finish_notice(self, inv_id, error=""):
+        self.invoices.document(inv_id).update(
+            {"notice": {"state": "failed" if error else "sent", "at": now(), "error": error}})
+
+    def set_delivery_email(self, inv_id, email):
+        """The owner corrects where the order goes (kept encrypted, like everything about the customer)."""
+        self.invoices.document(inv_id).update({"deliver_to": self.vault.seal({"email": email}, "deliver_to:" + inv_id)})
+
     def set_customer(self, inv_id, customer):
         self.invoices.document(inv_id).update({"customer": customer})
 
@@ -148,8 +238,9 @@ class Store:
         """Remembers the latest gateway payment id of an invoice so its status can be asked for later."""
         self.invoices.document(inv_id).update({"checkout": {"order": order_id, "id": payment_id}})
 
-    def start_attempt(self, inv_id, private=None):
-        """Reserves a payment attempt. Returns its unique gateway order id, or None when not allowed."""
+    def start_attempt(self, inv_id, payer=None):
+        """Reserves a payment attempt. Returns its unique gateway order id, or None when not allowed.
+        What the customer typed is kept for this attempt only, so a later attempt can correct it."""
         ref = self.invoices.document(inv_id)
 
         def work(tx):
@@ -162,8 +253,9 @@ class Store:
                 return None
             number = inv.get("attempts", 0) + 1
             changes = {"attempts": number, "last_attempt_at": moment, "last_error": ""}
-            if private:
-                changes["enc"] = self.vault.seal(private, inv_id)
+            if payer:
+                key = f"a{number}"
+                changes["payers"] = {**(inv.get("payers") or {}), key: self.vault.seal(payer, f"payer:{inv_id}:{key}")}
             tx.update(ref, changes)
             self._bump(tx, attempts=1)
             return f"{inv_id}x{number}"
@@ -196,8 +288,12 @@ class Store:
                 elif status in ("paid", "refunded"):
                     note = "already_paid"
                 else:
-                    changes = {"status": "paid", "paid_at": moment, "txn": ev["txn"],
-                               "rrn": ev["rrn"], "scheme": ev["scheme"], "last_error": ""}
+                    # A payment that lands after the link expired or was cancelled is recorded, but its order is
+                    # not emailed on its own: the owner may have reused that code by then.
+                    before = "expired" if status == "pending" and inv["expires_at"] <= moment else status
+                    changes = {"status": "paid", "paid_at": moment, "txn": ev["txn"], "rrn": ev["rrn"],
+                               "scheme": ev["scheme"], "last_error": "", "paid_order": ev["order_id"],
+                               "paid_from": before}
                     counters = {status: -1, "paid": 1, "paid_amount": amount}
                     daily = {"paid": 1, "amount": amount}
             elif ev["status"] == "Approved" and kind == "Refund":
@@ -248,14 +344,18 @@ class Store:
         return int(left) + 1 if left > 0 else 0
 
     def login_failed(self, key, limit):
-        ref, moment = self.db.collection("logins").document(key), time.time()
-        data = ref.get().to_dict() or {}
-        if moment - data.get("first", 0) > LOCK_SECONDS:
-            data = {"first": moment, "fails": 0}
-        data["fails"] = data.get("fails", 0) + 1
-        if data["fails"] >= limit:
-            data = {"first": moment, "fails": 0, "until": moment + LOCK_SECONDS}
-        ref.set(data)
+        ref = self.db.collection("logins").document(key)
+
+        def work(tx):
+            moment, data = time.time(), _read(tx, ref).to_dict() or {}
+            if moment - data.get("first", 0) > LOCK_SECONDS:
+                data = {"first": moment, "fails": 0}
+            data["fails"] = data.get("fails", 0) + 1
+            if data["fails"] >= limit:
+                data = {"first": moment, "fails": 0, "until": moment + LOCK_SECONDS}
+            tx.set(ref, data)
+
+        self._run(work)
 
     def login_ok(self, key):
         """Clears this address' failures and returns the time of the previous successful login."""

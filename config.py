@@ -4,6 +4,8 @@ import base64
 import json
 import os
 
+from validate import MAIL_ADDRESS
+
 GATEWAYS = {
     "production": "https://app-api.edfapay.com",
     "sandbox": "https://demo-api.edfapay.com",
@@ -48,6 +50,34 @@ class Config:
         self.base_url = (_env("BASE_URL") or _env("RENDER_EXTERNAL_URL")).rstrip("/")
         self.store_name = _env("STORE_NAME", "فواتير الدفع")
         self.insecure_dev = _env("INSECURE_DEV") == "1"
+        # Email is optional: the shop's mailbox sends the sign-in code, payment notices and the customer's order.
+        self.smtp_server = _env("SMTP_SERVER")
+        port = _env("SMTP_PORT", "465")
+        self.smtp_port = int(port) if port.isdigit() and 0 < int(port) < 65536 else 0
+        self.smtp_email = _env("SMTP_EMAIL")
+        self.smtp_password = _env("SMTP_PASSWORD")
+        owner_email = _env("OWNER_EMAIL").lower()
+        self.owner_email = owner_email if MAIL_ADDRESS.match(owner_email) else ""
+
+    @property
+    def mail_ready(self):
+        return bool(self.smtp_server and self.smtp_port and self.smtp_password
+                    and MAIL_ADDRESS.match(self.smtp_email))
+
+    def mail_problems(self):
+        """[(variable, what it is)] still missing for email. Email is optional, so this never stops the site."""
+        out = []
+        if not self.smtp_server:
+            out.append(("SMTP_SERVER", "خادم البريد، مثل mail.privateemail.com"))
+        if not self.smtp_port:
+            out.append(("SMTP_PORT", "منفذ خادم البريد: 465 أو 587"))
+        if not MAIL_ADDRESS.match(self.smtp_email):
+            out.append(("SMTP_EMAIL", "الإيميل الذي تُرسل منه الرسائل"))
+        if not self.smtp_password:
+            out.append(("SMTP_PASSWORD", "كلمة مرور ذلك الإيميل"))
+        if not self.owner_email:
+            out.append(("OWNER_EMAIL", "إيميلك أنت: يصله رمز الدخول وإشعار كل دفعة"))
+        return out
 
     def problems(self):
         """Returns [(variable, what is wrong)] - the site refuses to run until this is empty."""

@@ -1,9 +1,13 @@
 """Input cleaning. Each cleaner returns (value, error_message)."""
 import re
+import unicodedata
 from decimal import Decimal, InvalidOperation
 
 _DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫", "01234567890123456789.")
-_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
+# An address email can actually be sent to: the syntax browsers accept for type=email, with a dot in the domain.
+MAIL_ADDRESS = re.compile(r"^[A-Za-z0-9.#$%&'*+/=?^_`{|}~-]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+                          r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$")
+GOODS_LIMIT = 2000
 
 
 def western(value):
@@ -22,9 +26,19 @@ def clean_name(value):
 
 def clean_email(value):
     value = (value or "").strip().lower()
-    if len(value) <= 120 and _EMAIL.match(value):
+    if len(value) <= 120 and MAIL_ADDRESS.match(value):
         return value, None
     return None, "البريد الإلكتروني غير صحيح."
+
+
+def clean_goods(value):
+    """What the customer receives by email after paying (a code, a link, instructions). Line breaks are kept."""
+    lines = (value or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    text = "\n".join(line.rstrip() for line in lines).strip("\n")
+    text = "".join(ch for ch in text if ch in "\n\t" or unicodedata.category(ch) != "Cc")
+    if len(text) > GOODS_LIMIT:
+        return None, f"ما يُرسل للعميل يجب ألا يزيد على {GOODS_LIMIT} حرف."
+    return text, None
 
 
 def clean_phone(value):

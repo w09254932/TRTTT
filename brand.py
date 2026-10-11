@@ -107,9 +107,15 @@ def protect():
         abort(429)
 
 
+def _page(error=None, code=200):
+    from twostep import status
+    return render_template("settings.html", brand=svc().brand.get(fresh=error is None), error=error,
+                           mail=status(svc())), code
+
+
 @brand.get("/settings")
 def settings():
-    return render_template("settings.html", brand=svc().brand.get(fresh=True), error=None)
+    return _page()
 
 
 @brand.post("/settings")
@@ -124,7 +130,7 @@ def save():
     elif logo and (len(logo) > MAX_LOGO or not image_type(logo)):
         error = NO_LOGO
     if error:
-        return render_template("settings.html", brand=svc().brand.get(), error=error), 400
+        return _page(error, 400)
     svc().brand.save(primary, background, logo or None, form.get("remove_logo") == "1")
     flash("تم حفظ الشعار والألوان.")
     return redirect(url_for(".settings"), 303)

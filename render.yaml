@@ -27,3 +27,13 @@ services:
         sync: false
       - key: EDFAPAY_WEBHOOK_SECRET
         sync: false
+      - key: SMTP_SERVER
+        sync: false
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_EMAIL
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: OWNER_EMAIL
+        sync: false

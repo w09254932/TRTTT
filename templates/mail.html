@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ subject }}</title>
+</head>
+<body style="margin:0;padding:0;background:#edf0f4;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edf0f4;">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="rtl" style="max-width:520px;background:#ffffff;border-radius:12px;font-family:Tahoma,Arial,sans-serif;color:#14213d;text-align:right;">
+<tr><td style="padding:24px 24px 4px;">
+{% if logo %}<img src="{{ logo }}" alt="" style="display:block;max-width:60%;max-height:56px;margin:0 0 12px;">{% endif %}
+<p style="margin:0 0 6px;font-size:14px;font-weight:bold;color:{{ color }};">{{ store }}</p>
+<h1 style="margin:0 0 12px;font-size:22px;line-height:1.4;">{{ heading }}</h1>
+{% if intro %}<p style="margin:0 0 16px;font-size:15px;line-height:1.8;">{{ intro }}</p>{% endif %}
+</td></tr>
+{% if box %}<tr><td style="padding:0 24px 16px;">
+{% if box_label %}<p style="margin:0 0 6px;font-size:13px;color:#586377;">{{ box_label }}</p>{% endif %}
+<div dir="{{ 'ltr' if big else 'auto' }}" style="padding:14px 16px;background:#f4f6f9;border:1px solid #d3d9e3;border-radius:8px;{% if big %}font-family:Consolas,Menlo,monospace;font-size:30px;letter-spacing:8px;text-align:center;font-weight:bold;{% else %}font-size:17px;{% endif %}line-height:1.6;white-space:pre-wrap;word-break:break-word;">{% for line in box.split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}</div>
+</td></tr>{% endif %}
+{% if rows %}<tr><td style="padding:0 24px 8px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
+{% for label, value in rows %}<tr><td style="padding:8px 0;border-bottom:1px solid #e3e7ee;color:#586377;white-space:nowrap;vertical-align:top;">{{ label }}</td><td dir="auto" style="padding:8px 12px 8px 0;border-bottom:1px solid #e3e7ee;text-align:left;">{{ value }}</td></tr>
+{% endfor %}</table>
+</td></tr>{% endif %}
+{% if button %}<tr><td style="padding:16px 24px 8px;">
+<a href="{{ button[1] }}" style="display:inline-block;padding:12px 22px;background:{{ color }};color:{{ on_color }};border-radius:8px;font-weight:bold;text-decoration:none;">{{ button[0] }}</a>
+</td></tr>{% endif %}
+{% if outro %}<tr><td style="padding:8px 24px 0;font-size:13px;line-height:1.8;color:#586377;">{{ outro }}</td></tr>{% endif %}
+<tr><td style="padding:16px 24px 24px;font-size:12px;color:#8a94a6;">رسالة آلية من {{ store }}.</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

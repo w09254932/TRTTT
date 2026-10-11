@@ -34,8 +34,9 @@ class CustomerBook:
         query = self.col.order_by("last_at", direction=firestore.Query.DESCENDING).limit(limit)
         return [self._load(snap) for snap in query.stream()]
 
-    def remember(self, person, new_invoice=True):
-        """Saves or refreshes the customer who owns this phone. Returns the customer id (None without a phone)."""
+    def remember(self, person, new_invoice=True, overwrite=True):
+        """Saves or refreshes the customer who owns this phone. Returns the customer id (None without a phone).
+        With overwrite=False (details typed on the public payment page) a saved name or email is never replaced."""
         phone = person.get("phone")
         if not phone:
             return None
@@ -45,8 +46,9 @@ class CustomerBook:
         def work(tx):
             snap = next(iter(tx.get(ref)))
             old = self.vault.open((snap.to_dict() or {}).get("enc", ""), "customer:" + cid) if snap.exists else {}
-            kept = {"name": person.get("name") or old.get("name", ""), "phone": phone,
-                    "email": person.get("email") or old.get("email", "")}
+            first, second = (person, old) if overwrite else (old, person)
+            kept = {"name": first.get("name") or second.get("name", ""), "phone": phone,
+                    "email": first.get("email") or second.get("email", "")}
             changes = {"enc": self.vault.seal(kept, "customer:" + cid), "last_at": now()}
             if new_invoice:
                 changes["invoices"] = firestore.Increment(1)
@@ -68,6 +70,8 @@ class CustomerBook:
             if erase:
                 private = self.vault.open((snap.to_dict() or {}).get("enc", ""), snap.id)
                 changes["enc"] = self.vault.seal({"title": private.get("title", "")}, snap.id)
+                changes["payers"] = firestore.DELETE_FIELD
+                changes["deliver_to"] = firestore.DELETE_FIELD
             invoices.document(snap.id).update(changes)
         self.col.document(cid).delete()
 

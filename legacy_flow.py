@@ -8,6 +8,7 @@ import time
 from flask import Blueprint, abort, current_app, request
 
 from edfapay import GatewayError
+from notices import settle
 from security import too_many
 
 legacy = Blueprint("legacy", __name__)
@@ -69,7 +70,7 @@ def confirm(order_id, payment_id, hint=None):
         return "failed"
     else:
         return "not_confirmed"
-    return s.store.apply_webhook(event)
+    return settle(s, event)
 
 
 def poll(inv):
