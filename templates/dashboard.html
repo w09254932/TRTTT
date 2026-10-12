@@ -72,7 +72,7 @@
   <ul class="rows">
     {% for inv in rows %}
     <li><a href="{{ url_for('admin.invoice', inv_id=inv.id) }}">
-      <span class="what">{{ inv.private.title or 'بدون وصف' }}<small>{{ inv.private.name or 'عميل غير مسمى' }}، <bdi>{{ inv.created_at|when }}</bdi></small></span>
+      <span class="what">{{ inv.private.title or 'بدون وصف' }}<small>{% if inv.product %}من المتجر، {% endif %}{{ inv.private.name or 'عميل غير مسمى' }}، <bdi>{{ inv.created_at|when }}</bdi></small></span>
       <span class="sum">{{ inv.amount|money }}</span>
       <span class="chip {{ inv.status }}">{{ status_ar[inv.status] }}</span>
     </a></li>

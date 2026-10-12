@@ -11,6 +11,7 @@ RETRY_WAITS = (5, 20)  # seconds between automatic attempts while the mail serve
 SENT_TEXT = {"sent": "أُرسل إلى بريد العميل", "failed": "تعذر الإرسال. افتح الفاتورة وأعد الإرسال"}
 LATE_TEXT = "لم يُرسل تلقائياً لأن الفاتورة كانت {} قبل الدفع. أرسله من صفحة الفاتورة إن كان ذلك صحيحاً"
 CLOSED_AR = {"cancelled": "ملغاة", "expired": "منتهية"}
+NO_CODE_TEXT = "لم يبق كود في المخزون لهذا الطلب. أضف أكواداً ثم اضغط «تسليم كود من المخزون» في صفحة الفاتورة"
 
 
 def _luminance(color):
@@ -65,8 +66,15 @@ def settle(s, event):
     """Applies one confirmed gateway event; when it makes an invoice paid, the payment emails follow."""
     result = s.store.apply_webhook(event)
     if result == "applied" and event.get("status") == "Approved" and event.get("type") in ("Purchase", "Capture"):
+        inv_id = event["order_id"].partition("x")[0]
         try:
-            after_payment(s, event["order_id"].partition("x")[0])
+            handed = s.shop.assign(inv_id)  # a shop order gets its code from stock; other invoices are left alone
+            if handed != "none":
+                current_app.logger.info("shop order %s: code %s", inv_id, handed)
+        except Exception as exc:  # the payment stands; the owner can hand out the code from the invoice page
+            current_app.logger.error("code not handed out for %s: %s", inv_id, type(exc).__name__)
+        try:
+            after_payment(s, inv_id)
         except Exception as exc:  # an email problem must never block or undo a confirmed payment
             current_app.logger.error("payment emails not queued for %s: %s", event["order_id"], type(exc).__name__)
     return result
@@ -129,11 +137,16 @@ def owner_notice(s, inv_id, delivered=None):
                 ("العميل", inv["private"].get("name")), ("البطاقة", inv.get("scheme")), ("وقت الدفع", paid_at)]
         before = inv.get("paid_from", "pending")
         if inv.get("goods"):
-            late = LATE_TEXT.format(CLOSED_AR.get(before, before)) if before != "pending" else ""
+            late = LATE_TEXT.format(CLOSED_AR.get(before, before)) if before != "pending" and not inv.get("product") else ""
             rows.append(("تسليم الطلب", late or SENT_TEXT.get(delivered, "جارٍ الإرسال")))
+        elif inv.get("product"):
+            rows.append(("تسليم الطلب", NO_CODE_TEXT))
+        if inv.get("product"):
+            product = s.shop.get(inv["product"])
+            rows.append(("المتبقي من أكواد المنتج", str(product["available"]) if product else "المنتج محذوف"))
         heading = "وصلتك دفعة جديدة" if before == "pending" else f"وصلتك دفعة لفاتورة {CLOSED_AR.get(before, before)}"
         mail = message(s, f"دفعة جديدة {amount}: {title}", heading, rows=rows,
-                       button=("فتح الفاتورة", f"{s.cfg.base_url}/invoices/{inv['id']}"))
+                       button=("فتح الفاتورة", f"{s.cfg.base_url}/admin/invoices/{inv['id']}"))
         error = _send(s, s.cfg.owner_email, mail, RETRY_WAITS)
     finally:
         s.store.finish_notice(inv_id, error)

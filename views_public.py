@@ -16,6 +16,7 @@ pub = Blueprint("pub", __name__)
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{24}$")
 CLEANERS = {"name": clean_name, "phone": clean_phone, "email": clean_email}
 BUSY = "تعذر بدء الدفع الآن. انتظر لحظات ثم حاول مرة أخرى."
+SOLD_OUT = "نفدت كمية هذا المنتج قبل إتمام طلبك، فلم يُخصم منك شيء. اختر منتجاً آخر من المتجر."
 
 
 def svc():
@@ -64,6 +65,12 @@ def pay(token):
             if error:
                 return _page(inv, request.form, error, 400)
             customer[field] = payer[field] = value
+    if inv.get("product"):
+        # A shop order keeps a code aside while its customer pays, so the last code is never sold twice.
+        if too_many("hold", 8, per=600):
+            return _page(inv, request.form, BUSY, 429)
+        if not svc().shop.hold(inv):
+            return _page(inv, request.form, SOLD_OUT, 409)
     order_id = svc().store.start_attempt(inv["id"], payer or None)
     if not order_id:
         return _page(inv, request.form, BUSY, 429)

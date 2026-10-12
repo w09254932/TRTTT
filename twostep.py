@@ -18,7 +18,7 @@ from security import check_csrf, check_owner, client_ip, ip_key, signed_in, too_
 from validate import western
 from views_admin import finish_login, guard
 
-twostep = Blueprint("twostep", __name__)
+twostep = Blueprint("twostep", __name__, url_prefix="/admin")
 CODE_TTL, STEP_TTL, RESEND_AFTER, MAX_TRIES, MAX_SENDS, DAILY_CODES = 600, 900, 60, 5, 5, 40
 WRONG = "الرمز غير صحيح."
 EXPIRED = "انتهت صلاحية الرمز. اطلب رمزاً جديداً."

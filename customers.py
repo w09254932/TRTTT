@@ -9,7 +9,7 @@ from db import now
 from validate import clean_email, clean_name, western
 from views_admin import guard
 
-book = Blueprint("book", __name__)
+book = Blueprint("book", __name__, url_prefix="/admin")
 book.before_request(guard)
 CID_RE = re.compile(r"^[0-9a-f]{32}$")
 

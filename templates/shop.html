@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ store_name }}{% endblock %}
+{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block body %}
+<main class="shop">
+  <header class="shop-head">
+    {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
+    <h1>{{ store_name }}</h1>
+    <p class="muted">اختر المنتج وادفع، ويصلك طلبك على بريدك لحظة تأكيد الدفع.</p>
+  </header>
+  {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
+  {% if products %}
+  <ul class="items">
+    {% for p in products %}
+    <li class="item">
+      <div class="item-text">
+        <h2>{{ p.name }}</h2>
+        {% if p.description %}<p>{{ p.description }}</p>{% endif %}
+        {% if 0 < p.available <= 3 %}<p class="few">باقي {{ p.available }} فقط</p>{% endif %}
+      </div>
+      <div class="item-buy">
+        <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
+        {% if p.available %}
+        <form method="post" action="{{ url_for('shop.order', pid=p.id) }}">
+          <button class="primary" type="submit">شراء</button>
+        </form>
+        {% else %}
+        <p class="soldout">نفدت الكمية</p>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">لا توجد منتجات متاحة الآن. عد لاحقاً.</p>
+  {% endif %}
+  {% if owner %}<p class="owner-link"><a href="{{ url_for('shop_admin.products') }}">إدارة المنتجات</a></p>{% endif %}
+</main>
+<p class="fine">الدفع عبر بوابة EdfaPay، وهذا الموقع لا يرى بيانات بطاقتك ولا يحفظها.</p>
+{% endblock %}

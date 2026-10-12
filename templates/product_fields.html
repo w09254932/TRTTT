@@ -1,0 +1,11 @@
+{#- The product form fields, filled from f: the product being edited, or what was typed. -#}
+<input type="hidden" name="csrf" value="{{ csrf_token() }}">
+<p><label for="p-name">اسم المنتج</label>
+  <input id="p-name" name="name" maxlength="80" required value="{{ f.name }}"></p>
+<p><label for="p-price">السعر بالريال</label>
+  <input id="p-price" name="price" inputmode="decimal" dir="ltr" required value="{{ '%.2f'|format(f.price) if f.price is number else (f.price or '') }}"></p>
+<p class="wide"><label for="p-description">وصف قصير يظهر في المتجر (اختياري)</label>
+  <input id="p-description" name="description" maxlength="300" value="{{ f.description }}"></p>
+<p class="wide"><label for="p-note">تعليمات تصل للعميل مع الكود (اختياري)</label>
+  <textarea id="p-note" name="note" rows="3" maxlength="1000" dir="auto" placeholder="مثل طريقة الشحن">{{ f.note }}</textarea></p>
+<p class="wide"><label class="check"><input type="checkbox" name="active" value="1"{% if f.active in (true, '1') %} checked{% endif %}> يظهر في المتجر</label></p>

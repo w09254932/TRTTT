@@ -97,18 +97,22 @@ def create_app(cfg=None, client=None):
     from brand import Brand, brand
     from customers import CustomerBook, book
     from legacy_flow import legacy
+    from products import Shop, shop, shop_admin
     from twostep import LoginCodes, twostep
     from views_admin import admin
     from views_public import pub
     store = Store(client or make_client(cfg), vault)
     app.extensions["svc"] = SimpleNamespace(cfg=cfg, store=store, gateway=gateway,
                                             book=CustomerBook(store.db, vault), brand=Brand(store.db),
-                                            mailer=Mailer(cfg), codes=LoginCodes(store.db, cfg))
+                                            mailer=Mailer(cfg), codes=LoginCodes(store.db, cfg),
+                                            shop=Shop(store.db, vault, store))
     app.register_blueprint(admin)
     app.register_blueprint(pub)
     app.register_blueprint(book)
     app.register_blueprint(brand)
     app.register_blueprint(twostep)
+    app.register_blueprint(shop)
+    app.register_blueprint(shop_admin)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

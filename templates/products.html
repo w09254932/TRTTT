@@ -1,0 +1,40 @@
+{% extends "admin.html" %}
+{% block title %}المتجر | {{ store_name }}{% endblock %}
+{% block main %}
+<section class="sheet">
+  <h1>المتجر</h1>
+  <p class="muted">يختار العميل المنتج من متجرك ويدفع، فتُنشأ الفاتورة وحدها ويصله كود من مخزون المنتج على بريده لحظة تأكيد الدفع.</p>
+  {% if not mailing %}<p class="alert">الإيميل غير مُعدّ، فلن يصل الكود للعميل تلقائياً، وتجده أنت في صفحة الفاتورة. تجد المطلوب في صفحة الإعدادات.</p>{% endif %}
+  <label for="link">رابط متجرك</label>
+  <div class="share">
+    <input id="link" value="{{ store_link }}" readonly dir="ltr">
+    <button class="primary" type="button" data-copy="{{ store_link }}">نسخ الرابط</button>
+    <button class="quiet" type="button" data-share="{{ store_link }}" hidden>مشاركة</button>
+    <a class="quiet" href="{{ url_for('shop.store') }}" target="_blank" rel="noopener">فتح المتجر</a>
+  </div>
+</section>
+<section class="sheet">
+  <h2>المنتجات</h2>
+  {% if rows %}
+  <ul class="rows">
+    {% for p in rows %}
+    <li><a href="{{ url_for('shop_admin.product', pid=p.id) }}">
+      <span class="what">{{ p.name }}<small>{{ p.stock }} كود متاح{% if p.held %}، {{ p.held }} قيد الدفع{% endif %}، بيع {{ p.sold }}</small></span>
+      <span class="sum">{{ p.price|money }}</span>
+      {% if not p.active %}<span class="chip">مخفي</span>{% elif p.available %}<span class="chip paid">معروض</span>{% else %}<span class="chip pending">نفدت الأكواد</span>{% endif %}
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">لا توجد منتجات بعد. أضف أول منتج من النموذج أدناه.</p>
+  {% endif %}
+</section>
+<section class="sheet" id="new">
+  <h2>منتج جديد</h2>
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('shop_admin.create') }}#new" class="grid">
+    {% with f = form %}{% include "product_fields.html" %}{% endwith %}
+    <p class="wide"><button class="primary" type="submit">إضافة المنتج</button></p>
+  </form>
+</section>
+{% endblock %}

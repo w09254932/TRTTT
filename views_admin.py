@@ -14,7 +14,7 @@ from phones import clean_phone
 from security import check_csrf, check_owner, ip_key, sign_in, signed_in, too_many
 from validate import clean_amount, clean_email, clean_goods, clean_name, clean_text
 
-admin = Blueprint("admin", __name__)
+admin = Blueprint("admin", __name__, url_prefix="/admin")
 VALID_DAYS = (1, 3, 7, 14, 30)
 
 
@@ -154,9 +154,10 @@ def invoice(inv_id):
     link = f"{svc().cfg.base_url}/p/{inv['token']}"
     text = quote(f"فاتورة {inv['private'].get('title', '')} بمبلغ {inv['amount']:,.2f} ر.س\n{link}")
     phone = inv["private"].get("phone", "").lstrip("+")
+    product = svc().shop.get(inv["product"]) if inv.get("product") else None
     return render_template("invoice.html", inv=inv, link=link, events=svc().store.events_for(inv_id),
                            whatsapp=f"https://wa.me/{phone}?text={text}", goods=svc().store.goods(inv),
-                           mailing=svc().mailer.ready, delivery=inv.get("delivery") or {})
+                           mailing=svc().mailer.ready, delivery=inv.get("delivery") or {}, product=product)
 
 
 @admin.post("/invoices/<inv_id>/goods")
@@ -199,10 +200,32 @@ def send_goods(inv_id):
     return redirect(url_for(".invoice", inv_id=inv_id), 303)
 
 
+@admin.post("/invoices/<inv_id>/stock")
+def from_stock(inv_id):
+    """A paid shop order that found no code when it was paid: hands one out now and emails it."""
+    inv = _load(inv_id)
+    outcome = svc().shop.assign(inv_id) if inv.get("product") else "none"
+    if outcome == "empty":
+        flash("لا يوجد كود في مخزون هذا المنتج. أضف أكواداً من صفحة المتجر ثم حاول مرة أخرى.", "error")
+    elif outcome in ("assigned", "already"):
+        state, reason = notices.deliver(svc(), inv_id, again=True) if svc().mailer.ready else (None, "")
+        if state == "sent":
+            flash("أُخذ كود من المخزون وأُرسل إلى بريد العميل.")
+        elif state == "failed":
+            flash(f"أُخذ كود من المخزون لكن لم يُرسل: {hint(reason)}", "error")
+        else:
+            flash("أُخذ كود من المخزون. تجده في الطلب أدناه.")
+    else:
+        flash("هذه الفاتورة ليست طلباً مدفوعاً من المتجر.", "error")
+    return redirect(url_for(".invoice", inv_id=inv_id), 303)
+
+
 @admin.post("/invoices/<inv_id>/cancel")
 def cancel(inv_id):
-    _load(inv_id)
+    inv = _load(inv_id)
     done = svc().store.close(inv_id, "cancelled")
+    if done and inv.get("product"):
+        svc().shop.release(inv)
     flash("تم إلغاء الفاتورة." if done else "لا يمكن إلغاء هذه الفاتورة لأنها لم تعد مفتوحة.")
     return redirect(url_for(".invoice", inv_id=inv_id), 303)
 

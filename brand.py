@@ -113,12 +113,12 @@ def _page(error=None, code=200):
                            mail=status(svc())), code
 
 
-@brand.get("/settings")
+@brand.get("/admin/settings")
 def settings():
     return _page()
 
 
-@brand.post("/settings")
+@brand.post("/admin/settings")
 def save():
     form = request.form
     primary, background = form.get("primary", "").strip().lower(), form.get("background", "").strip().lower()

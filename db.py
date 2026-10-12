@@ -86,19 +86,20 @@ class Store:
         return inv
 
     # ---- invoices
-    def create_invoice(self, amount, private, days, customer=None, goods=""):
+    def create_invoice(self, amount, private, days, customer=None, goods="", extra=None, minutes=None):
         inv_id = "".join(secrets.choice(ID_CHARS) for _ in range(12))
         created = now()
         doc = {
             "token": secrets.token_urlsafe(18), "amount": amount, "currency": "SAR", "status": "pending",
             "enc": self.vault.seal(private, inv_id), "created_at": created,
-            "expires_at": created + timedelta(days=days),
+            "expires_at": created + (timedelta(minutes=minutes) if minutes else timedelta(days=days)),
             "attempts": 0, "views": 0, "declines": 0, "refunded_amount": 0.0,
         }
         if customer:
             doc["customer"] = customer
         if goods:
             doc["goods"] = self._seal_goods(goods, inv_id)
+        doc.update(extra or {})
 
         def work(tx):
             tx.set(self.invoices.document(inv_id), doc)
@@ -189,7 +190,8 @@ class Store:
             inv, moment = self._load(_read(tx, ref)), now()
             if not inv or inv.get("status") != "paid" or not inv.get("goods"):
                 return None
-            if not again and inv.get("paid_from", "pending") != "pending":
+            # A shop order takes its code from stock at the moment it is paid, so it goes out even when paid late.
+            if not again and inv.get("paid_from", "pending") != "pending" and not inv.get("product"):
                 return None
             last = inv.get("delivery") or {}
             if last.get("state") == "sending" and (moment - last["at"]).total_seconds() < SENDING_GRACE:

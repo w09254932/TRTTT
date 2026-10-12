@@ -1,0 +1,74 @@
+{% extends "admin.html" %}
+{% block title %}{{ p.name }} | {{ store_name }}{% endblock %}
+{% block main %}
+<section class="sheet">
+  <p class="muted"><a href="{{ url_for('shop_admin.products') }}">المتجر</a></p>
+  <h1>{{ p.name }}</h1>
+  <p class="total"><b>{{ p.price|money }}</b> ر.س
+    {% if not p.active %}<span class="chip">مخفي</span>{% elif p.available %}<span class="chip paid">معروض</span>{% else %}<span class="chip pending">نفدت الأكواد</span>{% endif %}</p>
+  <dl class="facts">
+    <div><dt>أكواد متاحة</dt><dd>{{ p.stock }}</dd></div>
+    <div><dt>محجوزة لطلبات قيد الدفع</dt><dd>{{ p.held }}</dd></div>
+    <div><dt>بيع</dt><dd>{{ p.sold }}</dd></div>
+  </dl>
+</section>
+<section class="sheet" id="codes">
+  <h2>إضافة أكواد</h2>
+  <form method="post" action="{{ url_for('shop_admin.add_codes', pid=p.id) }}#codes" class="goods-form">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="new-codes">كود في كل سطر</label>
+    <textarea id="new-codes" name="codes" rows="6" dir="ltr" required placeholder="ABCD-1234-EFGH&#10;IJKL-5678-MNOP"></textarea>
+    <span class="hint gap">تُحفظ الأكواد مشفّرة، ويأخذ كل طلب مدفوع أقدم كود. الكود المكرر لا يُضاف مرتين.</span>
+    <button class="primary" type="submit">إضافة الأكواد</button>
+  </form>
+</section>
+<section class="sheet">
+  <h2>الأكواد المتاحة</h2>
+  {% if free %}
+  <ul class="rows">
+    {% for c in free %}
+    <li><div>
+      <span class="what"><bdi class="code-text">{{ c.code }}</bdi><small>أُضيف <bdi>{{ c.at|when }}</bdi></small></span>
+      <form method="post" action="{{ url_for('shop_admin.remove_code', pid=p.id, cid=c.id) }}" data-confirm="حذف هذا الكود من المخزون؟">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="plain" type="submit">حذف</button>
+      </form>
+    </div></li>
+    {% endfor %}
+  </ul>
+  {% if p.stock > free|length %}<p class="muted">يظهر أقدم {{ free|length }} كود فقط.</p>{% endif %}
+  {% else %}
+  <p class="muted">لا توجد أكواد متاحة، فيظهر المنتج للعملاء «نفدت الكمية» حتى تضيف أكواداً.</p>
+  {% endif %}
+</section>
+<section class="sheet">
+  <h2>آخر ما بيع</h2>
+  {% if sold %}
+  <ul class="rows">
+    {% for c in sold %}
+    <li><a href="{{ url_for('admin.invoice', inv_id=c.invoice) }}">
+      <span class="what"><bdi class="code-text">{{ c.code }}</bdi><small>فاتورة <bdi>{{ c.invoice }}</bdi>، <bdi>{{ c.at|when }}</bdi></small></span>
+    </a></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">لم يُبع شيء من هذا المنتج بعد.</p>
+  {% endif %}
+</section>
+<section class="sheet" id="edit">
+  <h2>تعديل المنتج</h2>
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('shop_admin.edit', pid=p.id) }}#edit" class="grid">
+    {% with f = form or p %}{% include "product_fields.html" %}{% endwith %}
+    <p class="wide"><button class="quiet" type="submit">حفظ التعديل</button></p>
+  </form>
+</section>
+<section class="sheet">
+  <h2>حذف المنتج</h2>
+  <p class="muted">يُحذف المنتج إذا لم يبق فيه أكواد ولا عليه طلب قيد الدفع. لإيقافه مؤقتاً ألغِ «يظهر في المتجر».</p>
+  <form method="post" action="{{ url_for('shop_admin.delete', pid=p.id) }}" data-confirm="حذف المنتج نهائياً؟">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="danger" type="submit">حذف المنتج</button>
+  </form>
+</section>
+{% endblock %}

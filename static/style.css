@@ -144,6 +144,30 @@ input.code { font-size: 1.5rem; letter-spacing: .3em; text-align: center; }
 .pulse { color: var(--amber); font-weight: 600; }
 .fine { max-width: 400px; margin: 0 auto 2rem; padding: 0 1.5rem; text-align: center; }
 
+/* the store */
+.shop { width: calc(100% - 2rem); max-width: 560px; margin: 2rem auto 1rem; }
+.shop-head { text-align: center; margin-bottom: 1.5rem; }
+.shop-head .logo { display: block; max-width: 60%; max-height: 80px; margin: 0 auto .75rem; }
+.shop-head h1 { font-size: 1.75rem; color: var(--riyal); }
+.items { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.item {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem;
+  padding: 1.25rem; background: var(--sheet); border-radius: 14px; box-shadow: 0 8px 22px rgba(20, 33, 61, .08);
+}
+.item-text { flex: 1 1 14rem; min-width: 0; }
+.item-text h2 { margin: 0 0 .25rem; font-size: 1.125rem; }
+.item-text p { margin: 0; color: var(--muted); font-size: .9375rem; overflow-wrap: anywhere; }
+.item-buy { flex: 0 0 auto; display: flex; align-items: center; gap: .75rem; }
+.item-buy form { margin: 0; }
+.item-buy .primary { min-width: 7rem; }
+.price { margin: 0; font-size: 1rem; white-space: nowrap; }
+.price b { font-size: 1.5rem; }
+.item-text .few { margin-top: .35rem; font-size: .8125rem; color: var(--amber); font-weight: 600; }
+.soldout { margin: 0; padding: .5rem .9rem; border-radius: 8px; background: var(--paper); color: var(--muted); font-weight: 600; }
+.empty { padding: 2rem 1rem; text-align: center; color: var(--muted); background: var(--sheet); border-radius: 14px; }
+.owner-link { margin-top: 1.25rem; text-align: center; font-size: .875rem; }
+.code-text { font-family: ui-monospace, "SF Mono", Consolas, monospace; overflow-wrap: anywhere; }
+
 @media (min-width: 640px) {
   .ledger dl { grid-template-columns: repeat(4, 1fr); }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
