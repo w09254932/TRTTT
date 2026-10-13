@@ -58,6 +58,8 @@ class Config:
         self.smtp_password = _env("SMTP_PASSWORD")
         owner_email = _env("OWNER_EMAIL").lower()
         self.owner_email = owner_email if MAIL_ADDRESS.match(owner_email) else ""
+        # Optional: the WhatsApp number customers can write to from the store and the payment pages.
+        self.whatsapp = _env("WHATSAPP_NUMBER")
 
     @property
     def mail_ready(self):

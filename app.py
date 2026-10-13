@@ -3,6 +3,7 @@ import logging
 import secrets
 from datetime import timedelta
 from types import SimpleNamespace
+from urllib.parse import quote
 
 from flask import Flask, render_template, request
 from markupsafe import Markup
@@ -56,11 +57,22 @@ def create_app(cfg=None, client=None):
     def headers(response):
         return harden(response, secure)
 
+    support = phones.chat_number(cfg.whatsapp)
+    if cfg.whatsapp and not support:
+        app.logger.warning("WHATSAPP_NUMBER is not a phone number, so the WhatsApp button is hidden")
+
+    def whatsapp(text=""):
+        """A wa.me link to the shop's WhatsApp with the message already written, or "" when none is set."""
+        if not support:
+            return ""
+        return f"https://wa.me/{support}" + (f"?text={quote(text)}" if text else "")
+
     @app.context_processor
     def shared():
         return {"store_name": cfg.store_name, "csrf_token": csrf_token, "status_ar": STATUS_AR, "words": WORDS_AR,
                 "phone_code": phones.code_of, "phone_flag": phones.flag, "phone_label": phones.label,
-                "phone_examples": phones.EXAMPLES, "phone_codes": PHONE_CODES}
+                "phone_examples": phones.EXAMPLES, "phone_codes": PHONE_CODES, "whatsapp": whatsapp,
+                "support_phone": "+" + support if support else "", "support_bad": bool(cfg.whatsapp and not support)}
 
     @app.template_filter("money")
     def money(value):

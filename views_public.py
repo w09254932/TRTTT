@@ -37,11 +37,17 @@ def _invoice(token):
     return inv
 
 
+def _store_open(inv):
+    """Whether a closed or paid invoice offers the way to the store: always for a store order, and for an
+    invoice the owner made only when the store has something to buy."""
+    return inv["status"] != "pending" and (bool(inv.get("product")) or bool(svc().shop.catalog()))
+
+
 def _page(inv, form=None, error=None, code=200):
     # Whatever the owner did not fill in is asked on every attempt, so a mistake can be corrected.
     need = [field for field in CLEANERS if not inv["fixed"].get(field)]
-    return render_template("pay.html", inv=inv, need=need, form=form or {}, error=error,
-                           brand=svc().brand.get(), mailing=svc().mailer.ready), code
+    return render_template("pay.html", inv=inv, need=need, form=form or {}, error=error, brand=svc().brand.get(),
+                           mailing=svc().mailer.ready, store_open=_store_open(inv)), code
 
 
 @pub.get("/p/<token>")
@@ -107,7 +113,7 @@ def done(token):
                and (not reason or settling))
     again = url_for(".done", token=token, r="ok", n=tries + 1)
     return render_template("done.html", inv=inv, waiting=waiting, again=again, brand=svc().brand.get(),
-                           mailing=svc().mailer.ready)
+                           mailing=svc().mailer.ready, store_open=_store_open(inv))
 
 
 @pub.post("/webhook/edfapay")

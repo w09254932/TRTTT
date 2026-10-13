@@ -37,3 +37,5 @@ services:
         sync: false
       - key: OWNER_EMAIL
         sync: false
+      - key: WHATSAPP_NUMBER
+        sync: false

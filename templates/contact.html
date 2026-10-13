@@ -1,0 +1,12 @@
+{#- The customer's way to reach the shop on WhatsApp, shown only when WHATSAPP_NUMBER is set. Set before
+    including: wa_text (the message the chat opens with) and, optionally, wa_lead (the line above the button). -#}
+{%- set wa_link = whatsapp(wa_text) -%}
+{%- if wa_link %}
+<div class="contact">
+  {% if wa_lead %}<p>{{ wa_lead }}</p>{% endif %}
+  <a class="wa" href="{{ wa_link }}" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M12 3C6.9 3 3 6.6 3 11c0 2.4 1.1 4.5 2.9 6L5 21l4.3-2.3c.9.2 1.8.3 2.7.3 5.1 0 9-3.6 9-8s-3.9-8-9-8zM8 12.4a1.4 1.4 0 1 1 0-2.8 1.4 1.4 0 0 1 0 2.8zm4 0a1.4 1.4 0 1 1 0-2.8 1.4 1.4 0 0 1 0 2.8zm4 0a1.4 1.4 0 1 1 0-2.8 1.4 1.4 0 0 1 0 2.8z"/></svg>
+    تواصل معنا عبر واتساب
+  </a>
+</div>
+{%- endif %}

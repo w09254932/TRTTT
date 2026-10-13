@@ -154,6 +154,15 @@ def clean_phone(value, code=None):
     return None, f"رقم الجوال لا يناسب {NAMES[region]} ({LRM}+{digits}). تأكد من رمز الدولة ومن الرقم."
 
 
+def chat_number(value):
+    """WHATSAPP_NUMBER as wa.me wants it: digits with the country code, no + and no leading zeros. Takes
+    966501234567, +966 50 123 4567, 00966501234567 or a Saudi 0501234567. Returns "" when it is not a number."""
+    if not (value or "").strip():
+        return ""
+    phone, _ = clean_phone(value, "966")
+    return phone.lstrip("+") if phone else ""
+
+
 def _parsed(phone):
     try:
         return phonenumbers.parse(phone or "", None)

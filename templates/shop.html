@@ -6,13 +6,14 @@
   <header class="shop-head">
     {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
     <h1>{{ store_name }}</h1>
-    <p class="muted">اختر المنتج وادفع، ويصلك طلبك على بريدك لحظة تأكيد الدفع.</p>
+    <p>اختر المنتج وادفع بالبطاقة، ويصلك الكود على بريدك لحظة تأكيد الدفع.</p>
   </header>
   {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
   {% if products %}
+  {#- Each product is a voucher: what it is on one side, its price and the buy button on the tear-off stub. -#}
   <ul class="items">
     {% for p in products %}
-    <li class="item">
+    <li class="item{{ '' if p.available else ' out' }}">
       <div class="item-text">
         <h2>{{ p.name }}</h2>
         {% if p.description %}<p>{{ p.description }}</p>{% endif %}
@@ -22,7 +23,7 @@
         <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
         {% if p.available %}
         <form method="post" action="{{ url_for('shop.order', pid=p.id) }}">
-          <button class="primary" type="submit">شراء</button>
+          <button class="primary" type="submit" aria-label="شراء {{ p.name }}">شراء</button>
         </form>
         {% else %}
         <p class="soldout">نفدت الكمية</p>
@@ -34,6 +35,7 @@
   {% else %}
   <p class="empty">لا توجد منتجات متاحة الآن. عد لاحقاً.</p>
   {% endif %}
+  {% with wa_text = 'مرحباً، عندي سؤال عن ' ~ store_name ~ ': ', wa_lead = 'عندك سؤال عن منتج أو طلب؟' %}{% include "contact.html" %}{% endwith %}
   {% if owner %}<p class="owner-link"><a href="{{ url_for('shop_admin.products') }}">إدارة المنتجات</a></p>{% endif %}
 </main>
 <p class="fine">الدفع عبر بوابة EdfaPay، وهذا الموقع لا يرى بيانات بطاقتك ولا يحفظها.</p>

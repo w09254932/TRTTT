@@ -3,6 +3,7 @@
 {% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
 {% block body %}
 <main class="receipt">
+  {% if inv.product and inv.status == 'pending' %}<a class="back" href="{{ url_for('shop.store') }}">رجوع إلى المتجر</a>{% endif %}
   {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
   <p class="issuer">{{ store_name }}</p>
   <h1>{{ inv.private.title }}</h1>
@@ -10,35 +11,43 @@
   <p class="muted">فاتورة رقم <bdi>{{ inv.id }}</bdi></p>
   <hr class="tear">
   {% if inv.status == 'pending' %}
+  {% set emailed = (inv.has_goods or inv.product) and mailing %}
   {% if error %}<p class="alert" role="alert">{{ error }}</p>
   {% elif inv.last_error %}<p class="alert" role="alert">آخر محاولة دفع لم تتم. {{ inv.last_error|why }}</p>{% endif %}
-  {% if (inv.has_goods or inv.product) and mailing %}<p class="note">بعد الدفع يصل طلبك إلى بريدك{% if inv.fixed.email %} <bdi>{{ inv.fixed.email|mask }}</bdi>{% endif %} فوراً.</p>{% endif %}
+  {% if emailed and 'email' not in need %}<p class="note">بعد الدفع يصل طلبك إلى بريدك{% if inv.fixed.email %} <bdi>{{ inv.fixed.email|mask }}</bdi>{% endif %} فوراً.</p>{% endif %}
   <form method="post" action="{{ url_for('pub.pay', token=inv.token) }}">
     {% if 'name' in need %}<label for="name">الاسم</label>
     <input id="name" name="name" autocomplete="name" maxlength="80" required value="{{ form.name }}">{% endif %}
     {% if 'phone' in need %}<label for="phone">رقم الجوال</label>
     {% with phone_id="phone", phone_value=form.phone, phone_cc=form.cc, phone_required=true %}{% include "phone.html" %}{% endwith %}{% endif %}
-    {% if 'email' in need %}<label for="email">البريد الإلكتروني{% if (inv.has_goods or inv.product) and mailing %} (يصلك عليه طلبك){% endif %}</label>
-    <input id="email" name="email" type="email" autocomplete="email" dir="ltr" required value="{{ form.email }}">{% endif %}
+    {% if 'email' in need %}<label for="email">البريد الإلكتروني</label>
+    <input id="email" name="email" type="email" autocomplete="email" dir="ltr" required value="{{ form.email }}"{% if emailed %} aria-describedby="email-hint"{% endif %}>
+    {% if emailed %}<span class="hint field-hint" id="email-hint">بعد الدفع يصل طلبك إلى هذا البريد، فتأكد منه.</span>{% endif %}{% endif %}
     <button class="primary" type="submit">ادفع {{ inv.amount|money }} ر.س</button>
   </form>
   {% if inv.product %}
-  <p class="muted">أكمل الدفع قبل الساعة <bdi>{{ inv.expires_at|when('%H:%M') }}</bdi>. <a href="{{ url_for('shop.store') }}">رجوع إلى المتجر</a></p>
+  <p class="muted deadline">أكمل الدفع قبل الساعة <bdi>{{ inv.expires_at|when('%H:%M') }}</bdi>، وبعدها يُلغى الطلب.</p>
   {% else %}
-  <p class="muted">ينتهي هذا الرابط في <bdi>{{ inv.expires_at|when('%Y-%m-%d') }}</bdi>.</p>
+  <p class="muted deadline">ينتهي هذا الرابط في <bdi>{{ inv.expires_at|when('%Y-%m-%d') }}</bdi>.</p>
   {% endif %}
+  {% with wa_text = 'مرحباً، عندي سؤال عن طلب «' ~ inv.private.title ~ '» رقم ' ~ inv.id ~ ': ', wa_lead = 'عندك سؤال قبل الدفع؟' %}{% include "contact.html" %}{% endwith %}
   {% elif inv.status == 'paid' %}
   <p class="stamp">مدفوعة</p>
   <p>تم استلام المبلغ في <bdi>{{ inv.paid_at|when }}</bdi>. لا يلزمك أي إجراء آخر.</p>
   {% include "delivered.html" %}
+  {% include "paid_next.html" %}
   {% elif inv.status == 'refunded' %}
   <p class="alert">تم استرداد مبلغ هذه الفاتورة.</p>
+  {% if store_open %}<a class="primary" href="{{ url_for('shop.store') }}">تصفح المتجر</a>{% endif %}
+  {% with wa_text = 'مرحباً، بخصوص الفاتورة المستردة «' ~ inv.private.title ~ '» رقم ' ~ inv.id ~ ': ' %}{% include "contact.html" %}{% endwith %}
   {% else %}
   {% if inv.product %}
   <p class="alert">انتهت مهلة هذا الطلب. اطلبه من جديد من المتجر.</p>
   <a class="primary" href="{{ url_for('shop.store') }}">الذهاب إلى المتجر</a>
+  {% with wa_text = 'مرحباً، بخصوص طلب «' ~ inv.private.title ~ '» رقم ' ~ inv.id ~ ' الذي انتهت مهلته: ' %}{% include "contact.html" %}{% endwith %}
   {% else %}
   <p class="alert">هذا الرابط لم يعد صالحاً للدفع. اطلب رابطاً جديداً من {{ store_name }}.</p>
+  {% with wa_text = 'مرحباً، أحتاج رابط دفع جديد بدل الفاتورة رقم ' ~ inv.id ~ ' («' ~ inv.private.title ~ '»).', wa_lead = 'اطلب رابطاً جديداً عبر واتساب:' %}{% include "contact.html" %}{% endwith %}
   {% endif %}
   {% endif %}
 </main>

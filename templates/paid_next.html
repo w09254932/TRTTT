@@ -1,0 +1,8 @@
+{#- After a payment: the way back to the store, and WhatsApp for anything that went wrong. -#}
+<div class="next">
+  {% if store_open %}<a class="primary" href="{{ url_for('shop.store') }}">{{ 'رجوع إلى المتجر' if inv.product else 'تصفح المتجر' }}</a>{% endif %}
+  {% with wa_text = 'مرحباً، بخصوص طلبي المدفوع «' ~ inv.private.title ~ '» رقم ' ~ inv.id ~ ': ',
+          wa_lead = 'لم يصلك طلبك خلال دقائق أو واجهت مشكلة؟' if (inv.has_goods or inv.product) else 'عندك سؤال عن هذه الدفعة؟' %}
+  {% include "contact.html" %}
+  {% endwith %}
+</div>

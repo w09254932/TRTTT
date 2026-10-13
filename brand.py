@@ -58,11 +58,13 @@ def _readable(color, on, target):
 
 def theme_css(primary, background):
     on_primary = "#ffffff" if _contrast("#ffffff", primary) >= _contrast("#14213d", primary) else "#14213d"
-    ink = _readable(primary, "#ffffff", 3.5)
+    ink = _readable(primary, "#ffffff", 3.5)          # on the white receipt
+    head = _readable(primary, background, 3.5)        # the store name, straight on the page background
     quiet = _readable("#586377", background, 4.5)
     return (f":root{{--riyal:{primary};--paper:{background}}}"
             f".primary{{color:{on_primary}}}.primary:hover{{background:{_mix(primary, '#000000', 0.15)}}}"
-            f".receipt .issuer,.stamp{{color:{ink}}}.stamp{{border-color:{ink}}}.fine{{color:{quiet}}}")
+            f".receipt .issuer,.stamp,.receipt .back{{color:{ink}}}.stamp{{border-color:{ink}}}"
+            f".shop-head h1,.owner-link a{{color:{head}}}.fine,.shop-head p,.shop .contact p{{color:{quiet}}}")
 
 
 class Brand:

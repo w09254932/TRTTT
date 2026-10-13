@@ -21,6 +21,18 @@
   {% endif %}
 </section>
 
+<section class="sheet" id="whatsapp">
+  <h2>التواصل عبر واتساب</h2>
+  {% if support_phone %}
+  <p>يظهر للعملاء زر «تواصل معنا عبر واتساب» في المتجر وصفحة الدفع وبعد الدفع. يفتح محادثة مع <bdi>{{ support_phone|phone }}</bdi> وفيها اسم الطلب ورقم فاتورته.</p>
+  <a class="quiet" href="{{ whatsapp() }}" target="_blank" rel="noopener">فتح المحادثة للتجربة</a>
+  {% elif support_bad %}
+  <p class="alert">الرقم في <code dir="ltr">WHATSAPP_NUMBER</code> غير صحيح، فلا يظهر زر واتساب للعملاء. اكتبه في Render مع رمز الدولة، مثل <bdi>966501234567</bdi>.</p>
+  {% else %}
+  <p class="muted">لإظهار زر واتساب للعملاء أضف <code dir="ltr">WHATSAPP_NUMBER</code> في Render من تبويب Environment: رقمك مع رمز الدولة، مثل <bdi>966501234567</bdi>.</p>
+  {% endif %}
+</section>
+
 <section class="sheet" id="code">
   <h2>رمز الدخول بالإيميل</h2>
   {% if mail.active %}
