@@ -8,7 +8,7 @@
     <div><dt>منتهية أو ملغاة</dt><dd>{{ stats.expired + stats.cancelled }}</dd></div>
     <div><dt>مستردة</dt><dd>{{ stats.refunded }}</dd></div>
     <div><dt>المحصّل بالريال</dt><dd>{{ net|money }}</dd></div>
-    <div><dt>نسبة الدفع</dt><dd>{{ rate }}%</dd></div>
+    <div><dt>نسبة الدفع</dt><dd>{{ rate }}<span class="unit">%</span></dd></div>
     <div><dt>مشاهدات الروابط</dt><dd>{{ stats.views }}</dd></div>
     <div><dt>محاولات مرفوضة</dt><dd>{{ stats.declines }}</dd></div>
   </dl>

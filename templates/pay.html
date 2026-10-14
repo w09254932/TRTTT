@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}{{ inv.private.title }} | {{ store_name }}{% endblock %}
-{% block head %}{% include "motion.html" %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
 {% block body %}
 <main class="receipt" data-receipt="{{ inv.id }}-{{ inv.status }}">
   {% if inv.product and inv.status == 'pending' %}<a class="back" href="{{ url_for('shop.store') }}">رجوع إلى المتجر</a>{% endif %}
   {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
-  <p class="issuer">{{ store_name }}</p>
+  <p class="issuer">{% if not brand.logo %}<span class="coin small" aria-hidden="true">{{ brand.mark }}</span>{% endif %}{{ store_name }}</p>
   <h1>{{ inv.private.title }}</h1>
   <p class="due"><b>{{ inv.amount|money }}</b> ر.س</p>
   <p class="muted">فاتورة رقم <bdi>{{ inv.id }}</bdi></p>

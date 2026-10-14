@@ -1,8 +1,8 @@
-// Motion for the customer pages, built on GSAP (with ScrollTrigger) and Lenis, all served from this site.
+// Motion for every page, built on GSAP (with ScrollTrigger) and Lenis, all served from this site.
 // - Lenis smooths mouse-wheel scrolling; phones keep their own touch scrolling.
-// - Each page has one entrance: the store's name and vouchers arrive, the invoice prints like a receipt,
-//   and a paid invoice gets its stamp.
-// - Nothing here is needed to buy or pay: with reduced motion, a failed download or an error, the page
+// - Each page has one entrance: the gold coin flips in on the store and the sign-in page, the invoice prints
+//   like a ticket, a paid one gets its seal with a burst of gold, and the owner's panels rise in place.
+// - Nothing here is needed to buy, pay or work: with reduced motion, a failed download or an error, the page
 //   simply shows as it is.
 (function () {
   'use strict';
@@ -11,7 +11,7 @@
   var gsap = window.gsap, ScrollTrigger = window.ScrollTrigger, Lenis = window.Lenis;
   var animate = root.classList.contains('motion');
   var EASE = 'power3.out';
-  var HIDDEN = '.shop-head > *, .item, .shop .contact, .owner-link, .fine, .receipt, .stamp';
+  var HIDDEN = '.shop-head > *, .item, .shop .contact, .owner-link, .fine, .receipt, .stamp, .gate, .wrap > *';
 
   if (gsap === undefined || ScrollTrigger === undefined) { root.classList.remove('motion'); return; }
   gsap.registerPlugin(ScrollTrigger);
@@ -31,6 +31,22 @@
         delay: vars.delay || 0, clearProps: 'transform' });
   }
 
+  // Once per tab for each key, so a refresh or the next visit does not replay it.
+  function firstTime(key) {
+    try {
+      if (window.sessionStorage.getItem(key)) { return false; }
+      window.sessionStorage.setItem(key, '1');
+    } catch (e) { /* storage blocked: animate every time */ }
+    return true;
+  }
+
+  // The coin spins in like it was just tossed.
+  function flip(coin, tl, at) {
+    if (coin === null) { return; }
+    tl.fromTo(coin, { autoAlpha: 0, scale: 0.4, rotationY: -540, transformPerspective: 600 },
+      { autoAlpha: 1, scale: 1, rotationY: 0, duration: 1, ease: 'power3.out', clearProps: 'transform' }, at);
+  }
+
   // Wraps each word in its own span so the words can arrive one by one. Words, never letters:
   // Arabic letters must stay joined inside their word.
   function splitWords(el) {
@@ -46,16 +62,17 @@
     return el.querySelectorAll('.word');
   }
 
-  // The store: the name arrives word by word, then the vouchers as they come into view.
+  // The store: the coin, the name word by word, then the top-up cards as they come into view.
   function store() {
     var head = document.querySelector('.shop-head');
     var title = head.querySelector('h1');
     var words = splitWords(title);
     var tl = gsap.timeline({ defaults: { ease: EASE } });
-    var logo = head.querySelector('.logo');
+    var logo = head.querySelector('img.logo');
     if (logo) { tl.fromTo(logo, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.5, clearProps: 'transform' }); }
-    tl.set(title, { autoAlpha: 1 })
-      .fromTo(words, { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.09, clearProps: 'transform' })
+    flip(head.querySelector('.coin'), tl, 0);
+    tl.set(title, { autoAlpha: 1 }, 0.35)
+      .fromTo(words, { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.09, clearProps: 'transform' }, 0.35)
       .fromTo(head.querySelectorAll('p'), { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.5, clearProps: 'transform' }, '-=0.35')
       .add(function () {
         // What is on screen, or above it after a back or a reload, comes in now; the rest as it scrolls in.
@@ -72,14 +89,11 @@
         }
       }, '-=0.3');
 
-    // Buying tears the stub off the voucher: feedback while the order is being opened. The form is
+    // Buying tears the bottom of the card off: feedback while the order is being opened. The form is
     // never held back for it.
-    var wide = window.matchMedia('(min-width: 520px)');
     document.querySelectorAll('.item-buy form').forEach(function (form) {
       form.addEventListener('submit', function () {
-        var stub = form.closest('.item-buy');
-        gsap.to(stub, wide.matches ? { x: -10, rotation: -2.5, duration: 0.3, ease: 'power2.out' }
-                                   : { y: 8, rotation: 1.5, duration: 0.3, ease: 'power2.out' });
+        gsap.to(form.closest('.item-buy'), { y: 8, rotation: 1.5, duration: 0.3, ease: 'power2.out' });
       });
     });
     window.addEventListener('pageshow', function (event) {
@@ -87,19 +101,25 @@
     });
   }
 
-  // Shown once per invoice and state in this tab, so a refresh or a corrected form does not replay it.
-  function firstTime(key) {
-    try {
-      if (window.sessionStorage.getItem(key)) { return false; }
-      window.sessionStorage.setItem(key, '1');
-    } catch (e) { /* storage blocked: animate every time */ }
-    return true;
+  // Gold sparks fly out from the seal when it lands.
+  function sparks(paper, seal) {
+    var box = paper.getBoundingClientRect(), at = seal.getBoundingClientRect();
+    var x = at.left - box.left + at.width / 2, y = at.top - box.top + at.height / 2;
+    for (var i = 0; i < 14; i++) {
+      var spark = document.createElement('span');
+      spark.className = 'spark';
+      paper.appendChild(spark);
+      var angle = (i / 14) * Math.PI * 2 + gsap.utils.random(-0.2, 0.2), reach = gsap.utils.random(60, 120);
+      gsap.fromTo(spark, { x: x - 3, y: y - 3, scale: 1, autoAlpha: 1 },
+        { x: x - 3 + Math.cos(angle) * reach, y: y - 3 + Math.sin(angle) * reach * 0.7, scale: 0, autoAlpha: 0,
+          duration: gsap.utils.random(0.55, 0.85), ease: 'power2.out', onComplete: spark.remove.bind(spark) });
+    }
   }
 
-  // The invoice prints from the top like a receipt; a paid one then gets its stamp.
+  // The invoice prints from the top like a ticket; a paid one then gets its seal.
   function receipt() {
     var paper = document.querySelector('.receipt');
-    var stamp = paper.querySelector('.stamp');
+    var seal = paper.querySelector('.stamp');
     var key = 'trttt-printed-' + (paper.getAttribute('data-receipt') || location.pathname);
     var waiting = paper.querySelector('.pulse');
     if (waiting || firstTime(key) === false) { root.classList.remove('motion'); return; }
@@ -112,16 +132,58 @@
     tl.fromTo(paper, { clipPath: 'inset(-40px -40px ' + tall + 'px -40px)' },
       { clipPath: 'inset(-40px -40px -40px -40px)', duration: 0.8, ease: 'power2.out' })
       .fromTo('.fine', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4 }, '-=0.2');
-    if (stamp) {
-      tl.fromTo(stamp, { autoAlpha: 0, scale: 1.9, rotation: -14 },
-        { autoAlpha: 1, scale: 1, rotation: -5, duration: 0.42, ease: 'back.out(2.2)' }, '-=0.3')
+    if (seal) {
+      tl.fromTo(seal, { autoAlpha: 0, scale: 1.9, rotation: -16 },
+        { autoAlpha: 1, scale: 1, rotation: -6, duration: 0.42, ease: 'back.out(2.2)' }, '-=0.3')
+        .add(function () { sparks(paper, seal); })
         .to(paper, { x: 2, duration: 0.05, repeat: 3, yoyo: true, ease: 'none' });
+    }
+  }
+
+  // Sign in, the email code and messages: the card rises and the coin flips in.
+  function gate() {
+    var card = document.querySelector('.gate');
+    var tl = gsap.timeline({ onComplete: function () {
+      root.classList.remove('motion');
+      gsap.set(card, { clearProps: 'all' });
+    } });
+    tl.fromTo(card, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: EASE });
+    flip(card.querySelector('.coin'), tl, 0.1);
+  }
+
+  // Numbers count up to their value; "1,250.00" keeps its commas and decimals. Only the number's own text
+  // changes, so a unit beside it (like %) stays as it is.
+  function countUp(el) {
+    var node = el.firstChild;
+    if (node === null || node.nodeType !== 3) { return; }
+    var text = node.nodeValue.trim(), match = /^([\d,]+)(\.(\d+))?$/.exec(text);
+    if (match === null) { return; }
+    var end = parseFloat(text.replace(/,/g, '')), places = match[3] ? match[3].length : 0;
+    if (end <= 0) { return; }
+    var state = { value: 0 };
+    gsap.to(state, { value: end, duration: 1.1, ease: 'power2.out',
+      onUpdate: function () {
+        node.nodeValue = state.value.toLocaleString('en-US', { minimumFractionDigits: places, maximumFractionDigits: places });
+      },
+      onComplete: function () { node.nodeValue = text; } });
+  }
+
+  // The owner's pages: the panels rise in place, quickly, so work is never kept waiting.
+  function owner() {
+    var panels = document.querySelectorAll('.wrap > *');
+    gsap.fromTo(panels, { autoAlpha: 0, y: 14 },
+      { autoAlpha: 1, y: 0, duration: 0.45, stagger: 0.06, ease: EASE, clearProps: 'transform' });
+    var ledger = document.querySelector('.ledger');
+    if (ledger && firstTime('trttt-ledger')) {
+      ledger.querySelectorAll('.lead b, dd').forEach(countUp);
     }
   }
 
   try {
     if (document.querySelector('.shop')) { store(); }
     else if (document.querySelector('.receipt')) { receipt(); }
+    else if (document.querySelector('.gate')) { gate(); }
+    else if (document.querySelector('.wrap')) { owner(); }
     else { root.classList.remove('motion'); }
   } catch (error) {
     // Never leave the page hidden because of an animation problem.

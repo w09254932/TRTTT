@@ -74,7 +74,7 @@
 
 <section class="sheet" id="brand">
   <h2>الشعار والألوان</h2>
-  <p class="muted">تظهر للعميل في صفحة الدفع وصفحة نتيجة الدفع وفي إيميل طلبه. قد يحتاج التغيير دقيقة حتى يظهر.</p>
+  <p class="muted">تظهر للعميل في المتجر وصفحة الدفع ونتيجة الدفع وفي إيميلاته. الألوان الأصلية ليلي وذهبي، وأي لونين تختارهما يُضبط معهما باقي الألوان تلقائياً ليبقى النص واضحاً. قد يحتاج التغيير دقيقة حتى يظهر.</p>
   <form method="post" action="{{ url_for('brand.save') }}" enctype="multipart/form-data" class="grid">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <p class="wide"><label for="logo">الشعار</label>
@@ -84,7 +84,9 @@
     {% if brand.logo %}
     <p class="wide"><label class="check"><input type="checkbox" name="remove_logo" value="1"> إزالة الشعار الحالي</label></p>
     {% endif %}
-    <p><label for="primary">لون الأزرار واسم المتجر</label>
+    <p class="wide"><label for="mark">حروف العملة (تظهر في الدائرة الذهبية إن لم يكن هناك شعار)</label>
+      <input id="mark" name="mark" maxlength="3" dir="auto" value="{{ brand.mark }}"></p>
+    <p><label for="primary">لون الأزرار والأسعار</label>
       <input class="swatch" id="primary" name="primary" type="color" value="{{ brand.primary }}"></p>
     <p><label for="background">لون خلفية الصفحة</label>
       <input class="swatch" id="background" name="background" type="color" value="{{ brand.background }}"></p>
@@ -92,12 +94,12 @@
   </form>
 </section>
 <section class="sheet">
-  <h2>الرجوع للألوان الأصلية</h2>
+  <h2>الرجوع للون الليلي والذهبي</h2>
   <form method="post" action="{{ url_for('brand.save') }}">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    <input type="hidden" name="primary" value="#0b6e5a">
-    <input type="hidden" name="background" value="#edf0f4">
-    <button class="quiet" type="submit">استرجاع اللونين الأصليين</button>
+    <input type="hidden" name="primary" value="#f3b13c">
+    <input type="hidden" name="background" value="#120f24">
+    <button class="quiet" type="submit">استرجاع الألوان الأصلية</button>
   </form>
 </section>
 {% endblock %}

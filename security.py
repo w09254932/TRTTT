@@ -16,7 +16,7 @@ from werkzeug.security import check_password_hash
 from validate import western
 
 SESSION_MAX_AGE = 24 * 3600
-CSP = ("default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; "
+CSP = ("default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; "
        "form-action 'self' https://*.edfapay.com; base-uri 'none'; frame-ancestors 'none'")
 
 

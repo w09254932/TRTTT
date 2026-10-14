@@ -74,6 +74,8 @@ def create_app(cfg=None, client=None):
                 "phone_examples": phones.EXAMPLES, "phone_codes": PHONE_CODES, "whatsapp": whatsapp,
                 "support_phone": "+" + support if support else "", "support_bad": bool(cfg.whatsapp and not support)}
 
+    app.jinja_env.globals["shop_mark"] = lambda: "TR"   # until the shop's own settings are loaded below
+
     @app.template_filter("money")
     def money(value):
         return f"{float(value or 0):,.2f}"
@@ -118,6 +120,14 @@ def create_app(cfg=None, client=None):
                                             book=CustomerBook(store.db, vault), brand=Brand(store.db),
                                             mailer=Mailer(cfg), codes=LoginCodes(store.db, cfg),
                                             shop=Shop(store.db, vault, store))
+    def shop_mark():
+        """The coin's letters. Pages, error pages included, still draw when the database cannot be reached."""
+        try:
+            return app.extensions["svc"].brand.get()["mark"]
+        except Exception:
+            return "TR"
+
+    app.jinja_env.globals["shop_mark"] = shop_mark
     app.register_blueprint(admin)
     app.register_blueprint(pub)
     app.register_blueprint(book)

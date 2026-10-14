@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ store_name }}{% endblock %}
-{% block head %}{% include "motion.html" %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
 {% block body %}
 <main class="shop">
   <header class="shop-head">
-    {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
+    {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% else %}<span class="coin" aria-hidden="true">{{ brand.mark }}</span>{% endif %}
     <h1>{{ store_name }}</h1>
     <p>اختر المنتج وادفع بالبطاقة، ويصلك الكود على بريدك لحظة تأكيد الدفع.</p>
   </header>

@@ -14,22 +14,19 @@ CLOSED_AR = {"cancelled": "ملغاة", "expired": "منتهية"}
 NO_CODE_TEXT = "لم يبق كود في المخزون لهذا الطلب. أضف أكواداً ثم اضغط «تسليم كود من المخزون» في صفحة الفاتورة"
 
 
-def _luminance(color):
-    parts = [int(color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
-    r, g, b = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in parts]
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-
 def message(s, subject, heading, intro="", rows=(), box="", box_label="", big=False, button=None, outro="",
             logo=False):
     """(subject, text, html) for one email. Both versions are built from the same parts and say the same thing."""
+    from brand import tokens
     look = s.brand.get()
     color = look["primary"]
+    band = tokens(color, look["background"])
     logo_url = f"{s.cfg.base_url}/brand/logo?v={look['version']}" if logo and look["logo"] else ""
     rows = [(label, one_line(value, 200)) for label, value in rows if value]
     html = render_template("mail.html", subject=subject, store=s.cfg.store_name, heading=heading, intro=intro,
                            rows=rows, box=box, box_label=box_label, big=big, button=button, outro=outro,
-                           logo=logo_url, color=color, on_color="#14213d" if _luminance(color) > 0.35 else "#ffffff")
+                           logo=logo_url, color=color, on_color=band["--on-accent"], band=look["background"],
+                           band_text=band["--text"], band_muted=band["--muted"], mark=look["mark"])
     text = [heading, ""]
     if intro:
         text += [intro, ""]
