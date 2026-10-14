@@ -1,0 +1,10 @@
+{#- GSAP, ScrollTrigger and Lenis for the customer pages (store, invoice, payment result), served from this site
+    so the content security policy stays strict. motion-early.js must run first: it marks the page for the entrance
+    before it is drawn. The owner's pages load none of this. Each library sits in a folder named by its version, so
+    browsers keep it for a year; a newer version goes in a new folder. -#}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/lenis-1.3.26/lenis.css') }}">
+<script src="{{ url_for('static', filename='motion-early.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/gsap-3.15.0/gsap.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='vendor/gsap-3.15.0/ScrollTrigger.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='vendor/lenis-1.3.26/lenis.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='motion.js') }}" defer></script>

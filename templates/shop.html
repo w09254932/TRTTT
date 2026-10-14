@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ store_name }}{% endblock %}
-{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block head %}{% include "motion.html" %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
 {% block body %}
 <main class="shop">
   <header class="shop-head">

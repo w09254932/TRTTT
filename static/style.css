@@ -209,6 +209,12 @@ input.code { font-size: 1.5rem; letter-spacing: .3em; text-align: center; }
   .grid .wide { grid-column: 1 / -1; }
   .share input { flex: 1; }
 }
+/* motion (static/motion.js): hidden only until the entrance plays; without the "motion" mark nothing is hidden */
+.motion .shop-head > *, .motion .item, .motion .shop .contact, .motion .owner-link, .motion .fine { opacity: 0; }
+.motion .receipt { clip-path: inset(-40px -40px 100% -40px); }
+.motion .stamp { opacity: 0; animation: none; }
+.shop-head .word { display: inline-block; }
+
 @media (prefers-reduced-motion: no-preference) {
   .pulse { animation: wait 1.6s ease-in-out infinite; }
   @keyframes wait { 50% { opacity: .45; } }

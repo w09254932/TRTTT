@@ -130,6 +130,9 @@ def harden(response, secure):
     h["X-Robots-Tag"] = "noindex, nofollow"
     if secure:
         h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    if not request.path.startswith("/static/"):
+    if request.path.startswith("/static/vendor/"):
+        # Library files never change inside their version folder, so browsers may keep them.
+        h["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif not request.path.startswith("/static/"):
         h.setdefault("Cache-Control", "no-store")
     return response
