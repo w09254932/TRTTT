@@ -24,6 +24,23 @@
     {% if 'email' in need %}<label for="email">البريد الإلكتروني</label>
     <input id="email" name="email" type="email" autocomplete="email" dir="ltr" required value="{{ form.email }}"{% if emailed %} aria-describedby="email-hint"{% endif %}>
     {% if emailed %}<span class="hint field-hint" id="email-hint">بعد الدفع يصل طلبك إلى هذا البريد، فتأكد منه.</span>{% endif %}{% endif %}
+    <div class="agree" role="group" aria-labelledby="agree-title">
+      <p class="agree-title" id="agree-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>السياسات</p>
+      <div class="agree-row">
+        <input type="checkbox" id="agree-terms" name="agree_terms" value="1" required{% if form.agree_terms %} checked{% endif %}>
+        <div>
+          <label for="agree-terms">لقد قرأت وأوافق على الشروط والأحكام وسياسة الخصوصية.</label>
+          <p class="agree-links"><a href="{{ url_for('policies.terms') }}" target="_blank" rel="noopener">الشروط والأحكام</a><span aria-hidden="true">·</span><a href="{{ url_for('policies.privacy') }}" target="_blank" rel="noopener">الخصوصية وملفات تعريف الارتباط</a></p>
+        </div>
+      </div>
+      <div class="agree-row">
+        <input type="checkbox" id="agree-refund" name="agree_refund" value="1" required{% if form.agree_refund %} checked{% endif %}>
+        <div>
+          <label for="agree-refund">لقد قرأت وأوافق على سياسة الاسترداد والإلغاء.</label>
+          <p class="agree-links"><a href="{{ url_for('policies.refund') }}" target="_blank" rel="noopener">سياسة الاسترداد والإلغاء</a></p>
+        </div>
+      </div>
+    </div>
     <button class="primary" type="submit">ادفع {{ inv.amount|money }} ر.س</button>
   </form>
   {% if inv.product %}

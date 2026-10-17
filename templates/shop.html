@@ -67,7 +67,11 @@
   <p class="empty">لا توجد منتجات متاحة الآن. عد لاحقاً.</p>
   {% endif %}
   {% with wa_text = 'مرحباً، عندي سؤال عن ' ~ store_name ~ ': ', wa_lead = 'عندك سؤال عن منتج أو طلب؟' %}{% include "contact.html" %}{% endwith %}
+  <nav class="policy-links" aria-label="سياسات المتجر">
+    <a href="{{ url_for('policies.terms') }}">الشروط والأحكام</a>
+    <a href="{{ url_for('policies.privacy') }}">الخصوصية</a>
+    <a href="{{ url_for('policies.refund') }}">الاسترداد والإلغاء</a>
+  </nav>
   {% if owner %}<p class="owner-link"><a href="{{ url_for('shop_admin.products') }}">إدارة المنتجات</a></p>{% endif %}
 </main>
-<p class="fine">الدفع عبر بوابة EdfaPay، وهذا الموقع لا يرى بيانات بطاقتك ولا يحفظها.</p>
 {% endblock %}

@@ -23,6 +23,7 @@
     <div><dt>{{ 'دُفعت' if inv.paid_at else 'تنتهي' }}</dt><dd><bdi>{{ (inv.paid_at or inv.expires_at)|when }}</bdi></dd></div>
     <div><dt>المشاهدات</dt><dd>{{ inv.views }}</dd></div>
     <div><dt>محاولات الدفع</dt><dd>{{ inv.attempts }}، المرفوض منها {{ inv.declines }}</dd></div>
+    {% if inv.agreed %}<div><dt>وافق على السياسات</dt><dd><bdi>{{ inv.agreed.at|when }}</bdi> <small class="muted">نسخة <bdi>{{ inv.agreed.version }}</bdi></small></dd></div>{% endif %}
     {% if inv.refunded_amount %}<div><dt>المسترد</dt><dd>{{ inv.refunded_amount|money }} ر.س</dd></div>{% endif %}
     {% if inv.scheme %}<div><dt>البطاقة</dt><dd>{{ inv.scheme }}</dd></div>{% endif %}
     {% if inv.rrn %}<div><dt>المرجع البنكي</dt><dd><bdi>{{ inv.rrn }}</bdi></dd></div>{% endif %}

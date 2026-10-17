@@ -109,6 +109,7 @@ def create_app(cfg=None, client=None):
     from brand import Brand, brand
     from customers import CustomerBook, book
     from legacy_flow import legacy
+    from policies import policies
     from products import Shop, shop, shop_admin
     from twostep import LoginCodes, twostep
     from views_admin import admin
@@ -125,6 +126,7 @@ def create_app(cfg=None, client=None):
     app.register_blueprint(twostep)
     app.register_blueprint(shop)
     app.register_blueprint(shop_admin)
+    app.register_blueprint(policies)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

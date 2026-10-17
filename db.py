@@ -240,9 +240,10 @@ class Store:
         """Remembers the latest gateway payment id of an invoice so its status can be asked for later."""
         self.invoices.document(inv_id).update({"checkout": {"order": order_id, "id": payment_id}})
 
-    def start_attempt(self, inv_id, payer=None):
+    def start_attempt(self, inv_id, payer=None, agreed=None):
         """Reserves a payment attempt. Returns its unique gateway order id, or None when not allowed.
-        What the customer typed is kept for this attempt only, so a later attempt can correct it."""
+        What the customer typed is kept for this attempt only, so a later attempt can correct it. The version of
+        the policies the customer agreed to is kept with the time, for any later dispute."""
         ref = self.invoices.document(inv_id)
 
         def work(tx):
@@ -255,6 +256,8 @@ class Store:
                 return None
             number = inv.get("attempts", 0) + 1
             changes = {"attempts": number, "last_attempt_at": moment, "last_error": ""}
+            if agreed:
+                changes["agreed"] = {"version": agreed, "at": moment}
             if payer:
                 key = f"a{number}"
                 changes["payers"] = {**(inv.get("payers") or {}), key: self.vault.seal(payer, f"payer:{inv_id}:{key}")}

@@ -8,6 +8,7 @@ import legacy_flow
 from declines import specific
 from edfapay import GatewayError
 from notices import settle
+from policies import NOT_AGREED, VERSION, agreed
 from phones import clean_phone
 from security import client_ip, too_many
 from validate import clean_email, clean_name
@@ -80,13 +81,15 @@ def pay(token):
             if error:
                 return _page(inv, request.form, error, 400)
             customer[field] = payer[field] = value
+    if not agreed(request.form):
+        return _page(inv, request.form, NOT_AGREED, 400)
     if inv.get("product"):
         # A shop order keeps a code aside while its customer pays, so the last code is never sold twice.
         if too_many("hold", 8, per=600):
             return _page(inv, request.form, BUSY, 429)
         if not svc().shop.hold(inv):
             return _page(inv, request.form, SOLD_OUT, 409)
-    order_id = svc().store.start_attempt(inv["id"], payer or None)
+    order_id = svc().store.start_attempt(inv["id"], payer or None, agreed=VERSION)
     if not order_id:
         return _page(inv, request.form, BUSY, 429)
     if payer:

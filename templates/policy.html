@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{#- The layout of the three policy pages (policies.py): the store's name, the page's title and date, links between
+    the pages, the text, then the way to ask about it. -#}
+{% block title %}{{ title }} | {{ store_name }}{% endblock %}
+{% block body %}
+<main class="doc">
+  <header class="doc-head">
+    <p class="issuer">{{ store_name }}</p>
+    <h1>{{ title }}</h1>
+    <p class="muted">آخر تحديث: {{ updated }}</p>
+  </header>
+  <nav class="doc-nav" aria-label="سياسات المتجر">
+    {% for name, label in pages %}<a href="{{ url_for('policies.' ~ name) }}"{% if name == page %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+  </nav>
+  <article class="doc-body">
+    {% block policy %}{% endblock %}
+  </article>
+  {% with wa_text = 'مرحباً، عندي سؤال عن «' ~ title ~ '» في ' ~ store_name ~ ': ', wa_lead = 'عندك سؤال عن هذه السياسة؟' %}{% include "contact.html" %}{% endwith %}
+  <p class="doc-back"><a href="{{ url_for('shop.store') }}">الرجوع إلى المتجر</a></p>
+</main>
+{% endblock %}
