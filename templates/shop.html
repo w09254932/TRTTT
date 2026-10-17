@@ -15,8 +15,8 @@
     {% for p in products %}
     <li class="item{{ '' if p.available else ' out' }}">
       <div class="item-text">
-        <h2>{{ p.name }}</h2>
-        {% if p.description %}<p class="desc">{{ p.description }}</p>{% endif %}
+        <h2 dir="auto">{{ p.name }}</h2>
+        {% if p.description %}<p class="desc" dir="auto">{{ p.description }}</p>{% endif %}
         {% if 0 < p.available <= 3 %}<p class="few">باقي {{ p.available }} فقط</p>{% endif %}
       </div>
       <div class="item-buy">
