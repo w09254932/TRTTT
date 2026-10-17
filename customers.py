@@ -25,10 +25,23 @@ class CustomerBook:
         data = snap.to_dict() or {}
         person = self.vault.open(data.get("enc", ""), "customer:" + snap.id)
         return {"id": snap.id, "name": person.get("name", ""), "phone": person.get("phone", ""),
-                "email": person.get("email", ""), "invoices": data.get("invoices", 0), "last_at": data.get("last_at")}
+                "email": person.get("email", ""), "invoices": data.get("invoices", 0), "last_at": data.get("last_at"),
+                "optout": bool(data.get("optout"))}
 
     def get(self, cid):
         return self._load(self.col.document(cid).get()) if CID_RE.match(cid or "") else None
+
+    def everyone(self):
+        """Every customer, the most recent first (the Messages tab)."""
+        rows = [self._load(snap) for snap in self.col.stream()]
+        return sorted(rows, key=lambda p: (p["last_at"] is not None, p["last_at"] or 0), reverse=True)
+
+    def stop_mail(self, cid):
+        """The customer pressed the link at the end of a message: no more messages from the owner. Kept when the
+        customer orders again; the emails of their orders are not affected."""
+        ref = self.col.document(cid)
+        if ref.get().exists:
+            ref.update({"optout": True, "optout_at": now()})
 
     def recent(self, limit=50):
         query = self.col.order_by("last_at", direction=firestore.Query.DESCENDING).limit(limit)

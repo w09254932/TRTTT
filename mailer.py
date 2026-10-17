@@ -69,7 +69,7 @@ class Mailer:
         self._pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="mail")
         self._jobs, self._lock = set(), threading.Lock()
 
-    def compose(self, to, subject, text, html=None):
+    def compose(self, to, subject, text, html=None, headers=None):
         msg = EmailMessage()
         msg["Subject"] = one_line(subject)
         msg["From"] = Address(one_line(self.name, 60), addr_spec=self.user)
@@ -77,19 +77,21 @@ class Mailer:
         msg["Date"] = formatdate(usegmt=True)
         msg["Message-ID"] = make_msgid(domain=self.user.rpartition("@")[2])
         msg["Auto-Submitted"] = "auto-generated"
+        for name, value in (headers or {}).items():
+            msg[name] = value
         msg.set_content(text)
         if html:
             msg.add_alternative(html, subtype="html")
         return msg
 
-    def send(self, to, subject, text, html=None):
+    def send(self, to, subject, text, html=None, headers=None):
         """Sends one message to one address now. Raises MailError with a reason the owner can act on."""
         if not self.ready:
             raise MailError("off")
         to = (to or "").strip()
         if len(to) > 254 or not MAIL_ADDRESS.match(to):
             raise MailError("address")
-        msg = self.compose(to, subject, text, html)
+        msg = self.compose(to, subject, text, html, headers)
         try:
             self._deliver(msg, to, self.port)
         except MailError as exc:

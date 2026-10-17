@@ -5,11 +5,14 @@
   <h1>{{ who.name or 'بدون اسم' }}</h1>
   <dl class="facts">
     <div><dt>الجوال</dt><dd><bdi>{{ who.phone|phone }}</bdi> <small class="muted">{{ who.phone|phone_country }}</small></dd></div>
-    <div><dt>البريد</dt><dd><bdi>{{ who.email or 'غير مسجل' }}</bdi></dd></div>
+    <div><dt>البريد</dt><dd><bdi>{{ who.email or 'غير مسجل' }}</bdi>{% if who.optout %}<small class="muted optout">أوقف رسائل العروض</small>{% endif %}</dd></div>
     <div><dt>الفواتير</dt><dd>{{ rows|length }}، المدفوع منها {{ paid }}، بانتظار الدفع {{ waiting }}</dd></div>
     <div><dt>إجمالي ما دفعه</dt><dd>{{ total|money }} ر.س</dd></div>
   </dl>
-  <a class="primary" href="{{ url_for('admin.dashboard', customer=who.id) }}#new">فاتورة جديدة لهذا العميل</a>
+  <div class="actions">
+    <a class="primary" href="{{ url_for('admin.dashboard', customer=who.id) }}#new">فاتورة جديدة لهذا العميل</a>
+    {% if who.email and not who.optout %}<a class="quiet" href="{{ url_for('messages.compose', to=who.id) }}#new">رسالة لهذا العميل</a>{% endif %}
+  </div>
 </section>
 <section class="sheet">
   <h2>فواتيره</h2>

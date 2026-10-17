@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}إيقاف الرسائل | {{ store_name }}{% endblock %}
+{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block body %}
+<main class="gate">
+  {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
+  {% if sample %}
+  <h1>رابط إيقاف الرسائل</h1>
+  <p class="muted">هذه رسالة تجربة، فالرابط فيها لا يوقف شيئاً. في رسائل العملاء يفتح هذا الرابط صفحة يوقف منها العميل رسائل العروض عن بريده.</p>
+  {% elif stopped %}
+  <h1>تم إيقاف الرسائل</h1>
+  <p class="muted">لن تصلك رسائل العروض والأخبار من {{ store_name }}{% if email %} على <bdi>{{ email }}</bdi>{% endif %}. أما رسائل طلباتك، مثل الكود بعد الدفع، فتصلك كالمعتاد.</p>
+  {% else %}
+  <h1>إيقاف رسائل {{ store_name }}</h1>
+  <p class="muted">بعد الإيقاف لن تصلك رسائل العروض والأخبار على <bdi>{{ email }}</bdi>. أما رسائل طلباتك، مثل الكود بعد الدفع، فتصلك كالمعتاد.</p>
+  <form method="post">
+    <button class="primary" type="submit">إيقاف الرسائل</button>
+  </form>
+  {% endif %}
+  <p class="again"><a href="{{ url_for('shop.store') }}">زيارة المتجر</a></p>
+</main>
+{% endblock %}

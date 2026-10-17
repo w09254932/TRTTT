@@ -15,8 +15,9 @@ NO_CODE_TEXT = "لم يبق كود في المخزون لهذا الطلب. أض
 
 
 def message(s, subject, heading, intro="", rows=(), box="", box_label="", big=False, button=None, outro="",
-            logo=False):
-    """(subject, text, html) for one email. Both versions are built from the same parts and say the same thing."""
+            logo=False, body=(), unsubscribe=""):
+    """(subject, text, html) for one email. Both versions are built from the same parts and say the same thing.
+    body is a list of paragraphs; unsubscribe, the link that stops the owner's messages, ends the email with it."""
     from brand import tokens
     look = s.brand.get()
     color = look["primary"]
@@ -25,11 +26,14 @@ def message(s, subject, heading, intro="", rows=(), box="", box_label="", big=Fa
     rows = [(label, one_line(value, 200)) for label, value in rows if value]
     html = render_template("mail.html", subject=subject, store=s.cfg.store_name, heading=heading, intro=intro,
                            rows=rows, box=box, box_label=box_label, big=big, button=button, outro=outro,
+                           body=body, unsubscribe=unsubscribe,
                            logo=logo_url, color=color, on_color=band["--on-accent"], band=look["background"],
                            band_text=band["--text"], band_muted=band["--muted"])
     text = [heading, ""]
     if intro:
         text += [intro, ""]
+    for part in body:
+        text += [part, ""]
     if box:
         text += ([box_label + ":"] if box_label else []) + [box, ""]
     if rows:
@@ -38,7 +42,10 @@ def message(s, subject, heading, intro="", rows=(), box="", box_label="", big=Fa
         text += [f"{button[0]}: {button[1]}", ""]
     if outro:
         text += [outro, ""]
-    text += ["--", f"رسالة آلية من {s.cfg.store_name}."]
+    if unsubscribe:
+        text += ["--", f"وصلتك هذه الرسالة لأنك من عملاء {s.cfg.store_name}.", f"لإيقاف هذه الرسائل: {unsubscribe}"]
+    else:
+        text += ["--", f"رسالة آلية من {s.cfg.store_name}."]
     return subject, "\n".join(text) + "\n", html
 
 

@@ -107,6 +107,7 @@ def create_app(cfg=None, client=None):
     else:
         gateway = EdfaPay(cfg.edfa_base_url, cfg.edfa_api_key, cfg.edfa_webhook_secret)
     from brand import Brand, brand
+    from broadcasts import Broadcasts, leave, messages
     from customers import CustomerBook, book
     from legacy_flow import legacy
     from policies import policies
@@ -118,7 +119,7 @@ def create_app(cfg=None, client=None):
     app.extensions["svc"] = SimpleNamespace(cfg=cfg, store=store, gateway=gateway,
                                             book=CustomerBook(store.db, vault), brand=Brand(store.db),
                                             mailer=Mailer(cfg), codes=LoginCodes(store.db, cfg),
-                                            shop=Shop(store.db, vault, store))
+                                            shop=Shop(store.db, vault, store), broadcasts=Broadcasts(store.db))
     app.register_blueprint(admin)
     app.register_blueprint(pub)
     app.register_blueprint(book)
@@ -127,6 +128,8 @@ def create_app(cfg=None, client=None):
     app.register_blueprint(shop)
     app.register_blueprint(shop_admin)
     app.register_blueprint(policies)
+    app.register_blueprint(messages)
+    app.register_blueprint(leave)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

@@ -1,0 +1,100 @@
+{% extends "admin.html" %}
+{% block title %}الرسائل | {{ store_name }}{% endblock %}
+{% block head %}{% if active %}<meta http-equiv="refresh" content="5">{% endif %}{% endblock %}
+{% block main %}
+{% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+{% if note %}<p class="note" role="status">{{ note }}</p>{% endif %}
+{% if active %}
+<section class="sheet" id="sending">
+  <h1>{{ 'يتوقف الإرسال' if active.state == 'stopping' else 'جارٍ الإرسال' }}</h1>
+  <p class="sending-subject" dir="auto">{{ active.subject }}</p>
+  <progress max="{{ active.total }}" value="{{ active.done }}">{{ active.done }} / {{ active.total }}</progress>
+  <dl class="facts">
+    <div><dt>أُرسلت</dt><dd>{{ active.sent }} من {{ active.total }}</dd></div>
+    {% if active.failed %}<div><dt>تعذر إرسالها</dt><dd>{{ active.failed }}</dd></div>{% endif %}
+    {% if active.skipped %}<div><dt>لم تُرسل لأن العميل أوقف الرسائل أو حُذف</dt><dd>{{ active.skipped }}</dd></div>{% endif %}
+    {% if active.left and active.state == 'sending' %}<div><dt>الوقت المتبقي</dt><dd>{{ eta }}</dd></div>{% endif %}
+  </dl>
+  {% if active.state == 'stopping' %}
+  <p class="muted">يتوقف بعد الرسالة الحالية، وبعدها يمكنك إكماله لمن بقي. تتحدث الصفحة كل 5 ثوانٍ.</p>
+  {% else %}
+  <p class="muted">يمكنك إغلاق هذه الصفحة، فالإرسال يكمل وحده. تتحدث الصفحة كل 5 ثوانٍ.</p>
+  <form method="post" action="{{ url_for('messages.stop', bid=active.id) }}" data-confirm="إيقاف الإرسال الآن؟ يمكنك إكماله لاحقاً لمن بقي.">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="danger" type="submit">إيقاف الإرسال</button>
+  </form>
+  {% endif %}
+</section>
+{% elif not mail_ready %}
+<section class="sheet">
+  <h1>رسالة للعملاء</h1>
+  <p class="alert">الإيميل غير مُعدّ بعد، فلا يمكن إرسال رسائل. أكمله من <a href="{{ url_for('brand.settings') }}#email">صفحة الإعدادات</a>.</p>
+</section>
+{% elif not people %}
+<section class="sheet">
+  <h1>رسالة للعملاء</h1>
+  <p class="muted">لا يوجد عميل يمكن أن تصله رسالة بعد. يُحفظ بريد العميل مع فاتورته أو عند شرائه من المتجر.{% if stopped %} أوقف {{ many(stopped) }} هذه الرسائل.{% endif %}</p>
+</section>
+{% else %}
+<section class="sheet" id="new">
+  <h1>رسالة للعملاء</h1>
+  <p class="muted">كل عميل تصله رسالة مستقلة باسمه، فلا يرى أحد بريد غيره. وفي أسفل كل رسالة رابط يوقف به العميل هذه الرسائل، ولا تتأثر رسائل طلباته.</p>
+  <form method="post" action="{{ url_for('messages.send') }}" class="grid compose">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p class="wide"><label for="to">إلى</label>
+      <select id="to" name="to">
+        <option value="all">كل العملاء الذين لديهم بريد ({{ people|length }})</option>
+        <optgroup label="عميل واحد">{% for p in people %}
+          <option value="{{ p.id }}" {{ 'selected' if form.to == p.id }}>{{ p.name or 'بدون اسم' }} · &lrm;{{ p.email }}&lrm;</option>{% endfor %}
+        </optgroup>
+      </select>
+      {% set left_out = [] %}
+      {% if stopped %}{% set _ = left_out.append('من أوقف هذه الرسائل (' ~ stopped ~ ')') %}{% endif %}
+      {% if no_email %}{% set _ = left_out.append('من ليس لديه بريد (' ~ no_email ~ ')') %}{% endif %}
+      {% if left_out %}<span class="hint">لا تصل إلى {{ left_out|join(' ولا إلى ') }}.</span>{% endif %}</p>
+    <p class="wide"><label for="subject">العنوان</label>
+      <input id="subject" name="subject" maxlength="{{ subject_max }}" required dir="auto" value="{{ form.subject }}" placeholder="مثل: عروض نهاية الأسبوع"></p>
+    <p class="wide"><label for="body">نص الرسالة</label>
+      <textarea id="body" name="body" rows="8" maxlength="{{ body_max }}" required dir="auto" placeholder="اكتب رسالتك هنا">{{ form.body }}</textarea>
+      <span class="hint">اترك سطراً فارغاً بين الفقرات.</span></p>
+    <p class="wide"><label class="check"><input type="checkbox" name="greet" value="1" {{ 'checked' if form.greet == '1' }}> ابدأ بتحية باسم العميل، مثل «مرحباً سارة،»</label></p>
+    <p class="wide"><label class="check"><input type="checkbox" name="button" value="1" {{ 'checked' if form.button == '1' }}> أضف زر «زيارة المتجر»</label></p>
+    {% if big %}<p class="wide alert">مزودو البريد يحددون عدد الرسائل في اليوم (في Gmail نحو 500). إن توقف الإرسال لهذا السبب فأكمله في اليوم التالي من «آخر الرسائل».</p>{% endif %}
+    <div class="wide trial">
+      <label for="test_to">جرّبها أولاً على بريدك</label>
+      <div class="find">
+        <input id="test_to" name="test_to" type="email" dir="ltr" maxlength="254" value="{{ form.test_to or owner_email }}">
+        <button class="quiet" type="submit" formaction="{{ url_for('messages.test') }}">إرسال تجربة</button>
+      </div>
+      <span class="hint">تصلك كما تصل إلى العميل، وعنوانها يبدأ بـ «[تجربة]».</span>
+    </div>
+    <p class="wide"><button class="primary" type="submit" data-confirm="ستُرسل الرسالة الآن، ولا يمكن استرجاعها بعد وصولها. هل تريد الإرسال؟">إرسال الرسالة</button></p>
+  </form>
+</section>
+{% endif %}
+
+<section class="sheet" id="sent">
+  <h2>آخر الرسائل</h2>
+  {% if runs %}
+  <ul class="rows runs">
+    {% for run in runs %}
+    <li><div>
+      <span class="what">{{ run.subject }}
+        <small><bdi>{{ run.created_at|when }}</bdi> · {{ 'إلى عميل واحد' if run.to == 'one' else 'إلى كل العملاء' }} · أُرسلت {{ run.sent }} من {{ run.total }}{% if run.failed %} · تعذر {{ run.failed }}{% endif %}{% if run.skipped %} · لم تُرسل {{ run.skipped }}{% endif %}</small>
+        {% if run.state == 'stopped' and run.error %}<small class="why">{{ why(run.error) }}</small>{% endif %}
+      </span>
+      <span class="chip {{ {'sending': 'pending', 'stopping': 'pending', 'done': 'paid', 'stopped': 'expired'}[run.state] }}">{{ {'sending': 'جارٍ الإرسال', 'stopping': 'يتوقف', 'done': 'اكتمل', 'stopped': 'متوقف'}[run.state] }}</span>
+      {% if run.state == 'stopped' and run.left > 0 and not active and mail_ready %}
+      <form method="post" action="{{ url_for('messages.resume', bid=run.id) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="quiet" type="submit">إكمال الإرسال لمن بقي ({{ run.left }})</button>
+      </form>
+      {% endif %}
+    </div></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">لم تُرسل أي رسالة بعد.</p>
+  {% endif %}
+</section>
+{% endblock %}

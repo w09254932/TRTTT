@@ -98,9 +98,10 @@
     if (select.value && phone && phone.value === '') { fillFrom(select); }
   });
 
-  // Ask before destructive actions and stop double submits.
+  // Ask before destructive actions and stop double submits. A button can ask its own question.
   document.addEventListener('submit', function (event) {
-    var question = event.target.getAttribute('data-confirm');
+    var button = event.submitter;
+    var question = (button && button.getAttribute('data-confirm')) || event.target.getAttribute('data-confirm');
     if (question && !window.confirm(question)) { event.preventDefault(); return; }
     event.target.querySelectorAll('button[type=submit]').forEach(function (button) { button.disabled = true; });
   });

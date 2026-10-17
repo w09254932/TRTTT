@@ -19,6 +19,8 @@
 <tr><td style="padding:26px 24px 4px;">
 <h1 style="margin:0 0 12px;font-size:22px;line-height:1.4;">{{ heading }}</h1>
 {% if intro %}<p style="margin:0 0 16px;font-size:15px;line-height:1.8;">{{ intro }}</p>{% endif %}
+{% for part in body %}<p dir="auto" style="margin:0 0 14px;font-size:15px;line-height:1.9;text-align:start;">{% for line in part.split('\n') %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>
+{% endfor %}
 </td></tr>
 {% if box %}<tr><td style="padding:0 24px 16px;">
 {% if box_label %}<p style="margin:0 0 6px;font-size:13px;color:#5b6070;">{{ box_label }}</p>{% endif %}
@@ -36,7 +38,7 @@
 <tr><td style="padding:16px 24px 24px;"></td></tr>
 </table>
 </td></tr>
-<tr><td align="center" style="padding:6px 12px 28px;font-family:Tahoma,Arial,sans-serif;font-size:12px;color:{{ band_muted }};">رسالة آلية من {{ store }}.</td></tr>
+<tr><td align="center" style="padding:6px 12px 28px;font-family:Tahoma,Arial,sans-serif;font-size:12px;line-height:1.9;color:{{ band_muted }};">{% if unsubscribe %}وصلتك هذه الرسالة لأنك من عملاء {{ store }}.<br><a href="{{ unsubscribe }}" style="color:{{ band_muted }};text-decoration:underline;">إيقاف هذه الرسائل</a>{% else %}رسالة آلية من {{ store }}.{% endif %}</td></tr>
 </table>
 </body>
 </html>

@@ -183,6 +183,25 @@ button:disabled { opacity: .55; cursor: progress; }
 .total { font-size: 1.1rem; color: var(--muted); }
 .total b { font: 700 2.2rem var(--display); color: var(--accent-text); }
 .share { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.25rem; }
+.optout { display: block; }
+
+/* messages to customers */
+.compose textarea { min-height: 190px; }
+.compose .hint { display: block; margin-top: .35rem; }
+.trial { margin: .25rem 0 1.1rem; padding: .9rem .9rem .75rem; background: var(--field); border: 1px solid var(--line); border-radius: 14px; }
+.trial .find { margin: 0; }
+.sending-subject { font-weight: 700; overflow-wrap: anywhere; }
+progress {
+  display: block; width: 100%; height: 10px; margin: 0 0 1rem; overflow: hidden;
+  -webkit-appearance: none; appearance: none; border: 0; border-radius: 99px; background: var(--field); color: var(--accent);
+}
+progress::-webkit-progress-bar { background: var(--field); border-radius: 99px; }
+progress::-webkit-progress-value { background: var(--accent); border-radius: 99px; }
+progress::-moz-progress-bar { background: var(--accent); border-radius: 99px; }
+.runs .what { overflow-wrap: anywhere; }
+.runs .why { color: var(--bad); }
+.runs form { flex: 1 0 100%; margin: .2rem 0 0; }
+.runs form .quiet { min-height: 40px; padding: .35rem 1rem; font-size: .9rem; }
 .share input { flex: 1 0 100%; }
 .facts { margin: 0 0 1rem; }
 .facts div { display: flex; justify-content: space-between; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid var(--line); }
@@ -402,9 +421,9 @@ html:has(.peek-box[open]) { overflow: hidden; }
 .motion .stamp { opacity: 0; animation: none; }
 .motion .gate, .motion .wrap > * { opacity: 0; }
 
-@media (max-width: 400px) {
-  .tabs { gap: .25rem; padding-inline: .6rem; }
-  .tabs a { padding: .3rem .7rem; font-size: .92rem; }
+@media (max-width: 480px) {
+  .tabs { gap: .1rem; padding-inline: .5rem; }
+  .tabs a { flex: 1 0 auto; padding: .3rem .5rem; font-size: .9rem; text-align: center; }
 }
 @media (max-width: 360px) {
   .items { gap: .5rem; }
