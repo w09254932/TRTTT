@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ store_name }}{% endblock %}
-{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}
+<script src="{{ url_for('static', filename='shop.js') }}" defer></script>{% endblock %}
 {% block body %}
 <main class="shop">
   <header class="shop-head">
@@ -16,8 +17,12 @@
     <li class="item{{ '' if p.available else ' out' }}">
       <div class="item-text">
         <h2 dir="auto">{{ p.name }}</h2>
+        <button class="peek" type="button" data-peek="peek-{{ p.id }}" aria-haspopup="dialog" aria-label="تفاصيل {{ p.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
         {% if p.description %}<p class="desc" dir="auto">{{ p.description }}</p>{% endif %}
-        {% if 0 < p.available <= 3 %}<p class="few">باقي {{ p.available }} فقط</p>{% endif %}
+        {% if 0 < p.available <= 3 or p.sold %}<p class="tags">
+          {%- if 0 < p.available <= 3 %}<span class="few">باقي {{ p.available }}</span>{% endif -%}
+          {%- if p.sold %}<span class="sold">مباع {{ p.sold }}</span>{% endif -%}
+        </p>{% endif %}
       </div>
       <div class="item-buy">
         <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
@@ -32,6 +37,32 @@
     </li>
     {% endfor %}
   </ul>
+  {#- Each product's full details, opened from the eye on its card (static/shop.js). -#}
+  {% for p in products %}
+  <dialog class="peek-box" id="peek-{{ p.id }}" aria-labelledby="peek-{{ p.id }}-name" data-lenis-prevent>
+    <div class="peek-in">
+      <form method="dialog" class="peek-x"><button type="submit" aria-label="إغلاق">&times;</button></form>
+      <h2 id="peek-{{ p.id }}-name" dir="auto">{{ p.name }}</h2>
+      <p class="peek-price"><b>{{ p.price|money }}</b> ر.س</p>
+      {% if p.description %}<p class="peek-desc" dir="auto">{{ p.description }}</p>{% endif %}
+      <dl class="peek-facts">
+        <div><dt>الحالة</dt><dd class="{{ 'bad' if not p.available else ('few' if p.available <= 3 else 'ok') }}">
+          {%- if not p.available %}نفدت الكمية{% elif p.available <= 3 %}باقي {{ p.available }} فقط{% else %}متوفر{% endif -%}
+        </dd></div>
+        {% if p.sold %}<div><dt>مباع</dt><dd>{{ p.sold }}</dd></div>{% endif %}
+        <div><dt>الاستلام</dt><dd>كود يصلك على بريدك لحظة تأكيد الدفع</dd></div>
+        <div><dt>الدفع</dt><dd>بالبطاقة عبر بوابة EdfaPay</dd></div>
+      </dl>
+      {% if p.available %}
+      <form method="post" action="{{ url_for('shop.order', pid=p.id) }}">
+        <button class="primary" type="submit">شراء الآن</button>
+      </form>
+      {% else %}
+      <p class="soldout">نفدت الكمية</p>
+      {% endif %}
+    </div>
+  </dialog>
+  {% endfor %}
   {% else %}
   <p class="empty">لا توجد منتجات متاحة الآن. عد لاحقاً.</p>
   {% endif %}

@@ -257,14 +257,26 @@ button:disabled { opacity: .55; cursor: progress; }
 .item-text { flex: 1 1 auto; min-width: 0; padding: .7rem .75rem .6rem; }
 .item-text h2 {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
-  margin: 0 0 .15rem; font-size: .92rem; line-height: 1.5; overflow-wrap: anywhere;
+  margin: 0 0 .15rem; padding-left: 30px; font-size: .92rem; line-height: 1.5; overflow-wrap: anywhere;   /* room for the eye */
 }
 .item-text p { margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.65; overflow-wrap: anywhere; }
 .item-text .desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; }
-.item-text .few {
-  display: inline-block; margin-top: .4rem; padding: 0 .45rem; border-radius: 99px; font-size: .66rem; font-weight: 600;
-  white-space: nowrap; color: var(--accent-text); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+.item-text .tags { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
+.tags span {
+  padding: 0 .4rem; border-radius: 99px; font-size: .62rem; font-weight: 600; line-height: 1.65; white-space: nowrap;
+  border: 1px solid var(--line);
 }
+.tags .few { color: var(--accent-text); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.tags .sold { color: var(--muted); background: var(--panel-2); }
+/* the eye in the card's top-left corner: the product's full details */
+.peek {
+  position: absolute; top: .45rem; left: .45rem; display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  color: var(--muted); background: color-mix(in srgb, var(--panel-2) 85%, transparent); border: 1px solid var(--line);
+  border-radius: 50%; cursor: pointer;
+}
+.peek svg { width: 16px; height: 16px; }
+.peek:hover, .peek:focus-visible { color: var(--accent-text); border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.peek[hidden] { display: none; }
 .item-buy {
   position: relative; display: flex; flex-direction: column; align-items: stretch; gap: .45rem;
   padding: .55rem .75rem .7rem; border-top: 1px dashed var(--line);
@@ -284,6 +296,38 @@ button:disabled { opacity: .55; cursor: progress; }
   white-space: nowrap; background: var(--panel-2); color: var(--muted); font-size: .78rem; font-weight: 600; border: 1px solid var(--line);
 }
 .item.out h2, .item.out .price b { color: var(--muted); }
+/* the details window */
+.peek-box {
+  width: min(100% - 2rem, 420px); max-height: min(100% - 2rem, 640px); padding: 0; overflow: auto; color: var(--text);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+}
+.peek-box::backdrop { background: rgba(6, 4, 16, .72); }
+html:has(.peek-box[open]) { overflow: hidden; }
+.peek-in { position: relative; padding: 1.3rem 1.2rem 1.2rem; }
+.peek-x { position: absolute; top: .7rem; left: .7rem; margin: 0; }
+.peek-x button {
+  display: grid; place-items: center; width: 34px; height: 34px; padding: 0; font-size: 1.35rem; line-height: 1;
+  color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 50%;
+}
+.peek-x button:hover { color: var(--text); background: var(--panel-2); }
+.peek-box h2 { margin: 0 0 .3rem; padding-left: 2.6rem; font-size: 1.2rem; line-height: 1.5; overflow-wrap: anywhere; }
+.peek-price { margin: 0 0 1rem; color: var(--muted); font-size: .85rem; }
+.peek-price b { font: 700 1.9rem/1.2 var(--display); color: var(--accent-text); margin-inline-end: .2rem; }
+.peek-desc {
+  margin: 0 0 1rem; padding: .75rem .9rem; font-size: .9rem; line-height: 1.8; overflow-wrap: anywhere;
+  background: var(--field); border: 1px solid var(--line); border-radius: 12px;
+}
+.peek-facts { margin: 0 0 1.1rem; }
+.peek-facts div { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--line); font-size: .88rem; }
+.peek-facts dt { flex: none; color: var(--muted); }
+.peek-facts dd { margin: 0; text-align: end; min-width: 0; }
+.peek-facts .ok { color: var(--ok); }
+.peek-facts .few { color: var(--accent-text); }
+.peek-facts .bad { color: var(--bad); }
+.peek-box form { margin: 0; }
+.peek-box .primary { width: 100%; }
+.peek-box .soldout { min-height: 50px; }
 .empty { padding: 2rem 1rem; text-align: center; color: var(--muted); background: var(--panel); border: 1px dashed var(--line); border-radius: 20px; }
 .shop .contact { margin-top: 2rem; border-top: 0; padding-top: 0; }
 .owner-link { margin-top: 1.25rem; text-align: center; font-size: .875rem; }
@@ -324,4 +368,8 @@ button:disabled { opacity: .55; cursor: progress; }
   @keyframes wait { 50% { opacity: .45; } }
   .stamp { animation: stamp .45s cubic-bezier(.2, .8, .3, 1.25) both; }
   @keyframes stamp { from { opacity: 0; transform: rotate(-14deg) scale(1.9); } to { opacity: 1; transform: rotate(-6deg) scale(1); } }
+  .peek-box[open] { animation: peek-rise .22s ease-out; }
+  .peek-box[open]::backdrop { animation: peek-dim .22s ease-out; }
+  @keyframes peek-rise { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+  @keyframes peek-dim { from { opacity: 0; } }
 }
