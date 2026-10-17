@@ -254,20 +254,25 @@ button:disabled { opacity: .55; cursor: progress; }
   position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 14px; border: 1px solid var(--line);
   background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
 }
-.item-text { flex: 1 1 auto; min-width: 0; padding: .7rem .75rem .6rem; }
+.item-text { flex: 1 1 auto; min-width: 0; padding: .7rem .75rem .8rem; }
 .item-text h2 {
   display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
   margin: 0 0 .15rem; padding-left: 30px; font-size: .92rem; line-height: 1.5; overflow-wrap: anywhere;   /* room for the eye */
 }
 .item-text p { margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.65; overflow-wrap: anywhere; }
 .item-text .desc { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; }
-.item-text .tags { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .35rem; }
+/* "left" and "sold" sit on the tear line: "left" at its right end, "sold" at its left end, clear of the notches */
+.item-buy { container-type: inline-size; }
+.item-buy .tags {
+  position: absolute; top: 0; left: 10px; right: 10px; z-index: 1; display: flex; gap: 4px; margin: 0;
+  transform: translateY(-50%); pointer-events: none;
+}
 .tags span {
-  padding: 0 .4rem; border-radius: 99px; font-size: .62rem; font-weight: 600; line-height: 1.65; white-space: nowrap;
-  border: 1px solid var(--line);
+  padding: 0 5px; border-radius: 99px; font-size: .62rem; font-size: min(.62rem, 7cqi); font-weight: 600; line-height: 1.65;
+  white-space: nowrap; background: var(--panel); border: 1px solid var(--line);   /* shrinks only when large text would not fit */
 }
 .tags .few { color: var(--accent-text); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
-.tags .sold { color: var(--muted); background: var(--panel-2); }
+.tags .sold { margin-inline-start: auto; color: var(--muted); background: var(--panel-2); }
 /* the eye in the card's top-left corner: the product's full details */
 .peek {
   position: absolute; top: .45rem; left: .45rem; display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
@@ -279,7 +284,7 @@ button:disabled { opacity: .55; cursor: progress; }
 .peek[hidden] { display: none; }
 .item-buy {
   position: relative; display: flex; flex-direction: column; align-items: stretch; gap: .45rem;
-  padding: .55rem .75rem .7rem; border-top: 1px dashed var(--line);
+  padding: .8rem .75rem .7rem; border-top: 1px dashed var(--line);
 }
 .item-buy::before, .item-buy::after { content: ""; position: absolute; top: -8px; width: 16px; height: 16px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line); }
 .item-buy::before { right: -9px; }
@@ -344,8 +349,8 @@ html:has(.peek-box[open]) { overflow: hidden; }
 }
 @media (max-width: 360px) {
   .items { gap: .5rem; }
-  .item-text { padding: .65rem .65rem .55rem; }
-  .item-buy { padding: .5rem .65rem .65rem; }
+  .item-text { padding: .65rem .65rem .75rem; }
+  .item-buy { padding: .75rem .65rem .65rem; }
   .price b { font-size: 1.05rem; }
 }
 @media (min-width: 640px) {
@@ -355,11 +360,13 @@ html:has(.peek-box[open]) { overflow: hidden; }
   .share input { flex: 1; }
   .shop-head h1 { font-size: 2.9rem; }
   .items { gap: .9rem; }
-  .item-text { padding: .95rem 1rem .8rem; }
+  .item-text { padding: .95rem 1rem 1rem; }
   .item-text h2 { font-size: 1.08rem; }
   .item-text p { font-size: .8rem; }
   .item-text .desc { -webkit-line-clamp: 2; line-clamp: 2; }
-  .item-buy { padding: .75rem 1rem .95rem; }
+  .item-buy { padding: 1rem 1rem .95rem; }
+  .item-buy .tags { left: 14px; right: 14px; }
+  .tags span { padding: 0 7px; font-size: .68rem; font-size: min(.68rem, 7cqi); }
   .item-buy .primary, .soldout { min-height: 42px; font-size: .92rem; }
   .price b { font-size: 1.5rem; }
 }

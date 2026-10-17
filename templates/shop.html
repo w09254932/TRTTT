@@ -19,12 +19,12 @@
         <h2 dir="auto">{{ p.name }}</h2>
         <button class="peek" type="button" data-peek="peek-{{ p.id }}" aria-haspopup="dialog" aria-label="تفاصيل {{ p.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
         {% if p.description %}<p class="desc" dir="auto">{{ p.description }}</p>{% endif %}
+      </div>
+      <div class="item-buy">
         {% if 0 < p.available <= 3 or p.sold %}<p class="tags">
           {%- if 0 < p.available <= 3 %}<span class="few">باقي {{ p.available }}</span>{% endif -%}
           {%- if p.sold %}<span class="sold">مباع {{ p.sold }}</span>{% endif -%}
         </p>{% endif %}
-      </div>
-      <div class="item-buy">
         <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
         {% if p.available %}
         <form method="post" action="{{ url_for('shop.order', pid=p.id) }}">
