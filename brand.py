@@ -13,8 +13,6 @@ brand = Blueprint("brand", __name__)
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 DEFAULTS = {"primary": "#f3b13c", "background": "#120f24"}     # gold on night: the shop's own look
 LEGACY = {"primary": "#0b6e5a", "background": "#edf0f4"}       # the first look; saved as-is it means "not customised"
-MARK = re.compile(r"^[A-Za-z0-9\u0621-\u064A]{1,3}$")
-DEFAULT_MARK = "TR"
 MAX_LOGO = 300 * 1024
 NO_LOGO = "الشعار يجب أن يكون صورة PNG أو JPG أو WebP بحجم أقل من 300 كيلوبايت."
 
@@ -117,21 +115,17 @@ class Brand:
             data = {k: str(raw.get(k)).lower() if HEX.match(str(raw.get(k) or "")) else DEFAULTS[k] for k in DEFAULTS}
             if data == LEGACY:
                 data = dict(DEFAULTS)
-            mark = str(raw.get("mark") or "")
-            data["mark"] = mark if MARK.match(mark) else DEFAULT_MARK
             logo = bytes(raw.get("logo") or b"")
             data["logo_type"] = image_type(logo)
             data["logo"] = logo if data["logo_type"] else None
             data["custom"] = any(data[k] != DEFAULTS[k] for k in DEFAULTS)
-            seed = (data["primary"] + data["background"] + data["mark"]).encode() + (data["logo"] or b"")
+            seed = (data["primary"] + data["background"]).encode() + (data["logo"] or b"")
             data["version"] = hashlib.sha256(seed).hexdigest()[:12]
             self._data, self._at = data, time.time()
         return self._data
 
-    def save(self, primary, background, logo=None, remove_logo=False, mark=None):
+    def save(self, primary, background, logo=None, remove_logo=False):
         changes = {"primary": primary, "background": background}
-        if mark is not None:
-            changes["mark"] = mark
         if logo:
             changes["logo"] = logo
         elif remove_logo:
@@ -169,7 +163,6 @@ def settings():
 def save():
     form = request.form
     primary, background = form.get("primary", "").strip().lower(), form.get("background", "").strip().lower()
-    mark = " ".join(form.get("mark", "").split()).replace(" ", "") if "mark" in form else None
     upload = request.files.get("logo")
     logo = upload.read(MAX_LOGO + 1) if upload and upload.filename else b""
     error = None
@@ -177,12 +170,9 @@ def save():
         error = "اختر اللونين من منتقي الألوان."
     elif logo and (len(logo) > MAX_LOGO or not image_type(logo)):
         error = NO_LOGO
-    elif mark is not None and mark and not MARK.match(mark):
-        error = "حروف الشعار من حرف إلى ثلاثة أحرف أو أرقام، بلا رموز."
     if error:
         return _page(error, 400)
-    svc().brand.save(primary, background, logo or None, form.get("remove_logo") == "1",
-                     (mark or DEFAULT_MARK) if mark is not None else None)
+    svc().brand.save(primary, background, logo or None, form.get("remove_logo") == "1")
     flash("تم حفظ الشعار والألوان.")
     return redirect(url_for(".settings"), 303)
 

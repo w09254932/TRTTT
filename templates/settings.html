@@ -84,8 +84,6 @@
     {% if brand.logo %}
     <p class="wide"><label class="check"><input type="checkbox" name="remove_logo" value="1"> إزالة الشعار الحالي</label></p>
     {% endif %}
-    <p class="wide"><label for="mark">حروف العملة (تظهر في الدائرة الذهبية إن لم يكن هناك شعار)</label>
-      <input id="mark" name="mark" maxlength="3" dir="auto" value="{{ brand.mark }}"></p>
     <p><label for="primary">لون الأزرار والأسعار</label>
       <input class="swatch" id="primary" name="primary" type="color" value="{{ brand.primary }}"></p>
     <p><label for="background">لون خلفية الصفحة</label>

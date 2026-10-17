@@ -2,7 +2,6 @@
 {% block title %}دخول المالك | {{ store_name }}{% endblock %}
 {% block body %}
 <main class="gate">
-  <span class="coin" aria-hidden="true">{{ shop_mark() }}</span>
   <h1>{{ store_name }}</h1>
   <p class="muted">هذه اللوحة للمالك فقط.</p>
   {% for message in get_flashed_messages() %}<p class="alert" role="status">{{ message }}</p>{% endfor %}

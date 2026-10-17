@@ -2,7 +2,6 @@
 {% block title %}رمز الدخول | {{ store_name }}{% endblock %}
 {% block body %}
 <main class="gate">
-  <span class="coin" aria-hidden="true">{{ shop_mark() }}</span>
   <h1>رمز الدخول</h1>
   <p class="muted">أرسلنا رمزاً من 6 أرقام إلى <bdi>{{ to }}</bdi>. الرمز صالح 10 دقائق.</p>
   {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}

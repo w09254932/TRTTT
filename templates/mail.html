@@ -10,9 +10,7 @@
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{{ band }};">
 <tr><td align="center" style="padding:28px 12px 0;">
 <table role="presentation" cellpadding="0" cellspacing="0" dir="rtl"><tr>
-{% if logo %}<td style="padding:0 0 0 10px;"><img src="{{ logo }}" alt="" style="display:block;max-height:44px;max-width:160px;"></td>
-{% else %}<td style="width:40px;height:40px;border-radius:20px;background:{{ color }};color:{{ on_color }};font-family:Tahoma,Arial,sans-serif;font-size:14px;font-weight:bold;text-align:center;vertical-align:middle;">{{ mark }}</td>
-<td style="width:10px;"></td>{% endif %}
+{% if logo %}<td style="padding:0 0 0 10px;"><img src="{{ logo }}" alt="" style="display:block;max-height:44px;max-width:160px;"></td>{% endif %}
 <td style="font-family:Tahoma,Arial,sans-serif;font-size:17px;font-weight:bold;color:{{ band_text }};">{{ store }}</td>
 </tr></table>
 </td></tr>

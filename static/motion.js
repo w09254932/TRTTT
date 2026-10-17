@@ -1,7 +1,7 @@
 // Motion for every page, built on GSAP (with ScrollTrigger) and Lenis, all served from this site.
 // - Lenis smooths mouse-wheel scrolling; phones keep their own touch scrolling.
-// - Each page has one entrance: the gold coin flips in on the store and the sign-in page, the invoice prints
-//   like a ticket, a paid one gets its seal with a burst of gold, and the owner's panels rise in place.
+// - Each page has one entrance: the store's name arrives word by word, the invoice prints like a ticket, a paid
+//   one gets its seal with a burst of gold, the sign-in card rises, and the owner's panels rise in place.
 // - Nothing here is needed to buy, pay or work: with reduced motion, a failed download or an error, the page
 //   simply shows as it is.
 (function () {
@@ -40,13 +40,6 @@
     return true;
   }
 
-  // The coin spins in like it was just tossed.
-  function flip(coin, tl, at) {
-    if (coin === null) { return; }
-    tl.fromTo(coin, { autoAlpha: 0, scale: 0.4, rotationY: -540, transformPerspective: 600 },
-      { autoAlpha: 1, scale: 1, rotationY: 0, duration: 1, ease: 'power3.out', clearProps: 'transform' }, at);
-  }
-
   // Wraps each word in its own span so the words can arrive one by one. Words, never letters:
   // Arabic letters must stay joined inside their word.
   function splitWords(el) {
@@ -62,7 +55,7 @@
     return el.querySelectorAll('.word');
   }
 
-  // The store: the coin, the name word by word, then the top-up cards as they come into view.
+  // The store: the name word by word, then the top-up cards as they come into view.
   function store() {
     var head = document.querySelector('.shop-head');
     var title = head.querySelector('h1');
@@ -70,20 +63,19 @@
     var tl = gsap.timeline({ defaults: { ease: EASE } });
     var logo = head.querySelector('img.logo');
     if (logo) { tl.fromTo(logo, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.5, clearProps: 'transform' }); }
-    flip(head.querySelector('.coin'), tl, 0);
-    tl.set(title, { autoAlpha: 1 }, 0.35)
-      .fromTo(words, { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.09, clearProps: 'transform' }, 0.35)
+    tl.set(title, { autoAlpha: 1 })
+      .fromTo(words, { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.09, clearProps: 'transform' })
       .fromTo(head.querySelectorAll('p'), { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.5, clearProps: 'transform' }, '-=0.35')
       .add(function () {
         // What is on screen, or above it after a back or a reload, comes in now; the rest as it scrolls in.
-        var all = gsap.utils.toArray('.item, .shop .contact, .owner-link, .fine');
+        var all = gsap.utils.toArray('.item, .shop .contact, .owner-link, .fine');   // two cards to a row
         var now = all.filter(function (el) { return el.getBoundingClientRect().top < window.innerHeight; });
         var later = all.filter(function (el) { return now.indexOf(el) < 0; });
-        if (now.length) { show(now, { y: 28, duration: 0.6, stagger: 0.09 }); }
+        if (now.length) { show(now, { y: 24, duration: 0.55, stagger: 0.06 }); }
         if (later.length) {
           ScrollTrigger.batch(later, {
             start: 'top bottom', once: true,
-            onEnter: function (batch) { show(batch, { y: 28, duration: 0.6, stagger: 0.09 }); },
+            onEnter: function (batch) { show(batch, { y: 24, duration: 0.55, stagger: 0.06 }); },
             onEnterBack: function (batch) { show(batch, { y: 0, duration: 0.3 }); }
           });
         }
@@ -140,7 +132,7 @@
     }
   }
 
-  // Sign in, the email code and messages: the card rises and the coin flips in.
+  // Sign in, the email code and messages: the card rises.
   function gate() {
     var card = document.querySelector('.gate');
     var tl = gsap.timeline({ onComplete: function () {
@@ -148,7 +140,6 @@
       gsap.set(card, { clearProps: 'all' });
     } });
     tl.fromTo(card, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: 0.6, ease: EASE });
-    flip(card.querySelector('.coin'), tl, 0.1);
   }
 
   // Numbers count up to their value; "1,250.00" keeps its commas and decimals. Only the number's own text

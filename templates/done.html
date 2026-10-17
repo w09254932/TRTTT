@@ -4,7 +4,7 @@
 {% block body %}
 <main class="receipt" data-receipt="{{ inv.id }}-{{ inv.status }}">
   {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
-  <p class="issuer">{% if not brand.logo %}<span class="coin small" aria-hidden="true">{{ brand.mark }}</span>{% endif %}{{ store_name }}</p>
+  <p class="issuer">{{ store_name }}</p>
   <h1>{{ inv.private.title }}</h1>
   <p class="due"><b>{{ inv.amount|money }}</b> ر.س</p>
   <p class="muted">فاتورة رقم <bdi>{{ inv.id }}</bdi></p>

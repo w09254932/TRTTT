@@ -4,19 +4,19 @@
 {% block body %}
 <main class="shop">
   <header class="shop-head">
-    {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% else %}<span class="coin" aria-hidden="true">{{ brand.mark }}</span>{% endif %}
+    {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
     <h1>{{ store_name }}</h1>
     <p>اختر المنتج وادفع بالبطاقة، ويصلك الكود على بريدك لحظة تأكيد الدفع.</p>
   </header>
   {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
   {% if products %}
-  {#- Each product is a voucher: what it is on one side, its price and the buy button on the tear-off stub. -#}
+  {#- Two vouchers to a row: what it is on top, its price and the buy button on the tear-off stub. -#}
   <ul class="items">
     {% for p in products %}
     <li class="item{{ '' if p.available else ' out' }}">
       <div class="item-text">
         <h2>{{ p.name }}</h2>
-        {% if p.description %}<p>{{ p.description }}</p>{% endif %}
+        {% if p.description %}<p class="desc">{{ p.description }}</p>{% endif %}
         {% if 0 < p.available <= 3 %}<p class="few">باقي {{ p.available }} فقط</p>{% endif %}
       </div>
       <div class="item-buy">

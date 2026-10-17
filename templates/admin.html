@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block body %}
 <header class="bar">
-  <a class="brand" href="{{ url_for('admin.dashboard') }}"><span class="coin small" aria-hidden="true">{{ shop_mark() }}</span><span class="name">{{ store_name }}</span></a>
+  <a class="brand" href="{{ url_for('admin.dashboard') }}"><span class="name">{{ store_name }}</span></a>
   <form method="post" action="{{ url_for('admin.logout') }}">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <button class="plain" type="submit">تسجيل الخروج</button>

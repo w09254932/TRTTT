@@ -43,11 +43,20 @@ def _store_open(inv):
     return inv["status"] != "pending" and (bool(inv.get("product")) or bool(svc().shop.catalog()))
 
 
+def _about(inv):
+    """The product's description in full, for a store order still waiting to be paid: the store's small cards only
+    have room for its first lines."""
+    if inv["status"] != "pending" or not inv.get("product"):
+        return ""
+    product = svc().shop.get(inv["product"])
+    return product["description"] if product else ""
+
+
 def _page(inv, form=None, error=None, code=200):
     # Whatever the owner did not fill in is asked on every attempt, so a mistake can be corrected.
     need = [field for field in CLEANERS if not inv["fixed"].get(field)]
     return render_template("pay.html", inv=inv, need=need, form=form or {}, error=error, brand=svc().brand.get(),
-                           mailing=svc().mailer.ready, store_open=_store_open(inv)), code
+                           mailing=svc().mailer.ready, store_open=_store_open(inv), about=_about(inv)), code
 
 
 @pub.get("/p/<token>")

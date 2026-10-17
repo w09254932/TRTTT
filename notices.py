@@ -26,7 +26,7 @@ def message(s, subject, heading, intro="", rows=(), box="", box_label="", big=Fa
     html = render_template("mail.html", subject=subject, store=s.cfg.store_name, heading=heading, intro=intro,
                            rows=rows, box=box, box_label=box_label, big=big, button=button, outro=outro,
                            logo=logo_url, color=color, on_color=band["--on-accent"], band=look["background"],
-                           band_text=band["--text"], band_muted=band["--muted"], mark=look["mark"])
+                           band_text=band["--text"], band_muted=band["--muted"])
     text = [heading, ""]
     if intro:
         text += [intro, ""]
