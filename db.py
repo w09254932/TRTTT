@@ -15,6 +15,7 @@ ID_RE = re.compile(r"^[A-Z2-9]{12}$")
 STAT_KEYS = ("links", "pending", "paid", "cancelled", "expired", "refunded",
              "paid_amount", "refunded_amount", "views", "attempts", "declines")
 MAX_ATTEMPTS = 25
+GROUPS = {"pending": ("pending",), "paid": ("paid",), "ended": ("expired", "cancelled"), "refunded": ("refunded",)}
 LOCK_SECONDS = 900
 SENDING_GRACE = 300  # an order email marked "sending" for longer than this is treated as lost
 
@@ -117,13 +118,35 @@ class Store:
             return self._load(snap)
         return None
 
-    def recent(self, limit=20, before=None):
-        query = self.invoices
-        if before:
-            query = query.where("created_at", "<", before)
-        query = query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(limit + 1)
-        rows = [self._load(snap) for snap in query.stream()]
-        return rows[:limit], len(rows) > limit
+    def page(self, group=None, limit=10, before=None, scan=500, since=None):
+        """One page of invoices, newest first, and the date to continue from for older ones (None at the end).
+        With a group (see GROUPS) invoices are read in date order and kept when their state belongs to it, an open
+        invoice past its end counting as expired. At most `scan` are read for one page, so a filter needs no extra
+        database index and its cost stays bounded; `since` stops the reading at that date."""
+        wanted, moment, rows, read, cursor = GROUPS.get(group), now(), [], 0, before
+        while True:
+            query = self.invoices
+            if cursor:
+                query = query.where("created_at", "<", cursor)
+            size = limit + 1 if wanted is None else min(50, scan - read)
+            snaps = list(query.order_by("created_at", direction=firestore.Query.DESCENDING).limit(size).stream())
+            read += len(snaps)
+            for snap in snaps:
+                data = snap.to_dict() or {}
+                if since and data["created_at"] < since:
+                    return rows, None
+                state = data.get("status")
+                if state == "pending" and data["expires_at"] <= moment:
+                    state = "expired"
+                if wanted is None or state in wanted:
+                    rows.append(self._load(snap))
+                    if len(rows) > limit:
+                        return rows[:limit], rows[limit - 1]["created_at"]
+                cursor = data["created_at"]
+            if len(snaps) < size:
+                return rows, None
+            if read >= scan:
+                return rows, cursor
 
     def close(self, inv_id, new_status):
         """pending -> cancelled / expired. Returns False when the invoice is not open any more."""

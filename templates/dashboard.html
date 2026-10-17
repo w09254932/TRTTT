@@ -62,14 +62,17 @@
   </form>
 </section>
 
-<section class="sheet">
+<section class="sheet" id="invoices">
   <h2>الفواتير</h2>
   <form method="get" action="{{ url_for('admin.find') }}" class="find">
     <label for="q">بحث برقم الفاتورة</label>
     <input id="q" name="q" dir="ltr" maxlength="12" required><button class="quiet" type="submit">فتح</button>
   </form>
+  <nav class="filters" aria-label="تصفية الفواتير حسب الحالة">
+    {% for key, label in filters %}<a href="{{ url_for('admin.dashboard', status=key or None) }}#invoices"{% if key == status %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+  </nav>
   {% if rows %}
-  <ul class="rows">
+  <ul class="rows invoices">
     {% for inv in rows %}
     <li><a href="{{ url_for('admin.invoice', inv_id=inv.id) }}">
       <span class="what">{{ inv.private.title or 'بدون وصف' }}<small>{% if inv.product %}من المتجر، {% endif %}{{ inv.private.name or 'عميل غير مسمى' }}، <bdi>{{ inv.created_at|when }}</bdi></small></span>
@@ -78,9 +81,16 @@
     </a></li>
     {% endfor %}
   </ul>
-  {% if older %}<p><a class="quiet" href="{{ url_for('admin.dashboard', before=older) }}">فواتير أقدم</a></p>{% endif %}
+  {% elif status or older or not newest %}
+  <p class="muted">{{ 'لا توجد فواتير بهذه الحالة في هذا الجزء.' if older else 'لا توجد فواتير بهذه الحالة.' if status else 'لا توجد فواتير أقدم.' }}</p>
   {% else %}
   <p class="muted">لا توجد فواتير بعد. أنشئ أول رابط دفع من النموذج أعلاه.</p>
+  {% endif %}
+  {% if older or not newest %}
+  <p class="pager">
+    {% if not newest %}<a class="quiet" href="{{ url_for('admin.dashboard', status=status or None) }}#invoices">الأحدث</a>{% endif %}
+    {% if older %}<a class="quiet older" href="{{ url_for('admin.dashboard', status=status or None, before=older) }}#invoices">فواتير أقدم</a>{% endif %}
+  </p>
   {% endif %}
 </section>
 <section class="sheet">

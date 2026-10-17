@@ -1,6 +1,6 @@
 """Owner-only pages: sign in, statistics, creating and following invoices."""
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from urllib.parse import quote
 
@@ -16,6 +16,9 @@ from validate import clean_amount, clean_email, clean_goods, clean_name, clean_t
 
 admin = Blueprint("admin", __name__, url_prefix="/admin")
 VALID_DAYS = (1, 3, 7, 14, 30)
+FILTERS = (("", "الكل"), ("pending", "بانتظار الدفع"), ("paid", "مدفوعة"), ("ended", "منتهية"), ("refunded", "مستردة"))
+PAGE = 10
+EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 def svc():
@@ -80,10 +83,14 @@ def logout():
 
 def _dashboard(form=None, error=None, code=200):
     s, before = svc(), None
+    group = request.args.get("status", "")
+    group = group if group in dict(FILTERS) else ""
     cursor = request.args.get("before", "")
     if cursor.isdigit() and len(cursor) < 18:
-        before = datetime.fromtimestamp(int(cursor) / 1e6, timezone.utc)
-    rows, more = s.store.recent(20, before)
+        before = EPOCH + timedelta(microseconds=int(cursor))
+    # Nothing created before the longest link validity can still be waiting to be paid.
+    since = datetime.now(timezone.utc) - timedelta(days=max(VALID_DAYS) + 1) if group == "pending" else None
+    rows, oldest = s.store.page(group or None, PAGE, before, since=since)
     for inv in rows:
         if inv["overdue"]:
             s.store.close(inv["id"], "expired")
@@ -93,10 +100,12 @@ def _dashboard(form=None, error=None, code=200):
     chosen = (form or {}).get("customer") or request.args.get("customer", "")
     if chosen and chosen not in [p["id"] for p in people]:
         people = [p for p in [s.book.get(chosen)] if p] + people
-    older = int(rows[-1]["created_at"].timestamp() * 1e6) if more else None
+    older = (oldest - EPOCH) // timedelta(microseconds=1) if oldest else None
     previous = session.get("prev")
     return render_template(
-        "dashboard.html", rows=rows, older=older, stats=stats, days=days, form=form or {}, error=error,
+        "dashboard.html", rows=rows, older=older, newest=before is None, status=group, stats=stats, days=days,
+        filters=[f for f in FILTERS if f[0] != "refunded" or stats["refunded"] or group == "refunded"],
+        form=form or {}, error=error,
         net=stats["paid_amount"] - stats["refunded_amount"], valid_days=VALID_DAYS, mailing=s.mailer.ready,
         callback=legacy_flow.callback_url(s.cfg) if s.cfg.legacy else s.cfg.base_url + "/webhook/edfapay",
         people=people, chosen=chosen,
