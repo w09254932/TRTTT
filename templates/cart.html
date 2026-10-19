@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}السلة | {{ store_name }}{% endblock %}
+{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block body %}
+{% include "topbar.html" %}
+<main class="mine basket">
+  <h1>السلة</h1>
+  {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
+  {% if rows %}
+  <ul class="lines">
+    {% for p, qty in rows %}
+    <li class="line">
+      <div class="line-what">
+        <h2 dir="auto">{{ p.name }}</h2>
+        <p class="muted">{{ p.price|money }} ر.س للواحد{% if p.available < qty %} · <span class="bad-text">المتوفر {{ p.available }} فقط</span>{% endif %}</p>
+      </div>
+      <div class="line-do">
+        <div class="qty" role="group" aria-label="الكمية">
+          <form method="post" action="{{ url_for('cart.set_qty', pid=p.id) }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="qty" value="{{ qty + 1 }}">
+            <button type="submit" aria-label="زيادة"{% if qty >= max_qty or qty >= p.available %} disabled{% endif %}>+</button>
+          </form>
+          <output aria-live="polite">{{ qty }}</output>
+          <form method="post" action="{{ url_for('cart.set_qty', pid=p.id) }}">
+            <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="qty" value="{{ qty - 1 }}">
+            <button type="submit" aria-label="{{ 'حذف' if qty == 1 else 'إنقاص' }}">{{ '×' if qty == 1 else '−' }}</button>
+          </form>
+        </div>
+        <p class="line-sum"><b>{{ (p.price * qty)|money }}</b> ر.س</p>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <section class="total-box">
+    <p><span>الإجمالي</span><b>{{ total|money }} <small>ر.س</small></b></p>
+    {% if me and me.name and me.phone %}
+    <p class="muted">يُكتب في طلبك: {{ me.name }} · <bdi>{{ me.phone|phone }}</bdi> · <bdi>{{ me.email }}</bdi>. وتصل الأكواد إلى بريدك فور تأكيد الدفع.</p>
+    <form method="post" action="{{ url_for('cart.checkout') }}">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="primary" type="submit">إتمام الطلب والدفع</button>
+    </form>
+    {% elif me %}
+    <p class="muted">أكمل اسمك ورقم جوالك مرة واحدة ليُكتبا في طلباتك.</p>
+    <a class="primary" href="{{ url_for('account.details', next=url_for('cart.view')) }}">أكمل بياناتي</a>
+    {% else %}
+    <p class="muted">سجّل الدخول لإتمام طلبك. تبقى سلتك كما هي.</p>
+    <a class="primary" href="{{ url_for('account.login', next=url_for('cart.view')) }}">تسجيل الدخول وإتمام الطلب</a>
+    {% endif %}
+  </section>
+  {% else %}
+  <div class="me-empty">
+    <p class="muted">سلتك فارغة.</p>
+    <a class="primary" href="{{ url_for('shop.store') }}">تسوق الآن</a>
+  </div>
+  {% endif %}
+  <p class="doc-back"><a href="{{ url_for('shop.store') }}">متابعة التسوق</a></p>
+</main>
+{% endblock %}

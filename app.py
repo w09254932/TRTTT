@@ -108,6 +108,7 @@ def create_app(cfg=None, client=None):
         gateway = EdfaPay(cfg.edfa_base_url, cfg.edfa_api_key, cfg.edfa_webhook_secret)
     from accounts import Accounts, account, signed_in_customer
     from brand import Brand, brand
+    from cart import cart, count as cart_count
     from broadcasts import Broadcasts, leave, messages
     from customers import CustomerBook, book
     from legacy_flow import legacy
@@ -123,6 +124,7 @@ def create_app(cfg=None, client=None):
                                             shop=Shop(store.db, vault, store), broadcasts=Broadcasts(store.db),
                                             accounts=Accounts(store.db, vault, cfg))
     app.add_template_global(signed_in_customer, "customer_account")
+    app.add_template_global(cart_count, "cart_count")
     app.add_template_global(lambda: app.extensions["svc"].brand.get(), "brand_look")
     app.register_blueprint(admin)
     app.register_blueprint(pub)
@@ -135,6 +137,7 @@ def create_app(cfg=None, client=None):
     app.register_blueprint(messages)
     app.register_blueprint(leave)
     app.register_blueprint(account)
+    app.register_blueprint(cart)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

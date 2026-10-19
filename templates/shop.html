@@ -28,8 +28,9 @@
         </p>{% endif %}
         <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
         {% if p.available %}
-        <form method="post" action="{{ url_for('shop.order', pid=p.id) }}">
-          <button class="primary" type="submit" aria-label="شراء {{ p.name }}">شراء</button>
+        <form method="post" action="{{ url_for('cart.add', pid=p.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="/">
+          <button class="primary" type="submit" aria-label="أضف {{ p.name }} إلى السلة">أضف للسلة</button>
         </form>
         {% else %}
         <p class="soldout">نفدت الكمية</p>
@@ -52,12 +53,19 @@
         </dd></div>
         {% if p.sold %}<div><dt>مباع</dt><dd>{{ p.sold }}</dd></div>{% endif %}
         <div><dt>الاستلام</dt><dd>كود يصلك على بريدك لحظة تأكيد الدفع</dd></div>
-        <div><dt>الدفع</dt><dd>بالبطاقة عبر بوابة EdfaPay</dd></div>
+        <div><dt>الدفع</dt><dd>بالبطاقة عبر بوابة EdfaPay، بعد تسجيل الدخول</dd></div>
       </dl>
       {% if p.available %}
-      <form method="post" action="{{ url_for('shop.order', pid=p.id) }}">
-        <button class="primary" type="submit">شراء الآن</button>
-      </form>
+      <div class="peek-buy">
+        <form method="post" action="{{ url_for('cart.buy', pid=p.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="primary" type="submit">اشترِ الآن</button>
+        </form>
+        <form method="post" action="{{ url_for('cart.add', pid=p.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="/">
+          <button class="quiet" type="submit">أضف إلى السلة</button>
+        </form>
+      </div>
       {% else %}
       <p class="soldout">نفدت الكمية</p>
       {% endif %}

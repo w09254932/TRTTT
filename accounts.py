@@ -29,6 +29,7 @@ WRONG = "الرمز غير صحيح."
 EXPIRED = "انتهت صلاحية الرمز. اطلب رمزاً جديداً."
 NO_PHOTO = "الصورة يجب أن تكون PNG أو JPG أو WebP بحجم أقل من 300 كيلوبايت."
 SHOW = {"": "الكل", "paid": "مدفوعة", "pending": "بانتظار الدفع"}
+EDIT_FOR = 600       # seconds a code from the email unlocks the saved name and mobile
 
 
 def account_id(vault, email):
@@ -307,7 +308,8 @@ def orders_of(s, me):
     rows = {inv["id"]: inv for inv in s.store.for_buyer(me["id"])}
     for person in _people(s, me):
         for inv in s.store.for_customer(person["id"]):
-            rows.setdefault(inv["id"], inv)
+            if not inv.get("buyer") or inv["buyer"] == me["id"]:   # an order paid with another email is not theirs
+                rows.setdefault(inv["id"], inv)
     return sorted(rows.values(), key=lambda inv: inv["created_at"], reverse=True)
 
 
@@ -364,25 +366,91 @@ def resend(inv_id):
     return redirect(url_for(".orders"), 303)
 
 
+def _unlocked(me):
+    """A code from the email was entered in the last minutes: the saved name and mobile may change."""
+    return session.get("edit", {}).get("a") == me["id"] and session["edit"].get("until", 0) > time.time()
+
+
 @account.route("/account/details", methods=["GET", "POST"])
 def details():
+    """The name and mobile are written once. A saved one changes only after a code sent to the account's email."""
     s, me = svc(), _me()
+    open_ = _unlocked(me)
+    locked = {"name": bool(me["name"]) and not open_, "phone": bool(me["phone"]) and not open_}
+    nxt = _safe_next(request.values.get("next"))
     form, error = None, None
     if request.method == "POST":
         form = request.form
-        name, error = clean_name(form.get("name", ""))
-        phone = ""
-        if not error and form.get("phone", "").strip():
+        name, error = (me["name"], None) if locked["name"] else clean_name(form.get("name", ""))
+        phone = me["phone"] if locked["phone"] else ""
+        if not error and not locked["phone"] and form.get("phone", "").strip():
             phone, error = clean_phone(form.get("phone", ""), form.get("cc"))
+        if not error and not phone:
+            error = "اكتب رقم جوالك."
         if not error:
             s.accounts.save_details(me, name, phone)
-            flash("تم حفظ بياناتك، وستُكتب عنك في صفحة الدفع.")
-            return redirect(url_for(".details"), 303)
+            session.pop("edit", None)
+            flash("تم حفظ بياناتك، وستُكتب في طلباتك. لا يمكن تغييرها لاحقاً إلا برمز يصل إلى بريدك.")
+            return redirect(nxt or url_for(".details"), 303)
     if form is None:
         form = {"name": me["name"]}
         if me["phone"]:
             form["cc"], form["phone"] = parts(me["phone"])
-    return _render("details", me, form=form, error=error, code=400 if error else 200)
+    asking = bool(session.get("edit", {}).get("n")) and session["edit"].get("a") == me["id"] and not open_
+    return _render("details", me, form=form, error=error, locked=locked, unlocked=open_, asking=asking, next=nxt,
+                   code=400 if error else 200)
+
+
+def _edit_mail(s, code):
+    return message(s, f"رمز تعديل بياناتك في {s.cfg.store_name}: {code}", "رمز تعديل البيانات",
+                   "اكتب هذا الرمز في صفحة «بياناتي» لتعديل اسمك أو رقم جوالك. صالح 10 دقائق.",
+                   box=code, big=True, outro="إن لم تطلب تعديل بياناتك فتجاهل هذه الرسالة، ولن يتغير شيء.")
+
+
+@account.post("/account/details/unlock")
+def unlock():
+    """Sends a code to the account's email to change the saved name or mobile."""
+    s, me = svc(), _me()
+    if too_many("account_code", 6, per=600):
+        flash("طلبات كثيرة. انتظر دقائق ثم حاول مرة أخرى.", "error")
+        return redirect(url_for(".details"), 303)
+    nonce = secrets.token_urlsafe(16)
+    code, wait = s.accounts.issue(me["id"], nonce)
+    if code is None:
+        flash(f"أرسلنا رمزاً قبل قليل. اطلب رمزاً جديداً بعد {wait} ثانية." if wait > 0 else "طلبت رموزاً كثيرة. حاول بعد ساعة.",
+              "error")
+        return redirect(url_for(".details"), 303)
+    try:
+        s.mailer.send(me["email"], *_edit_mail(s, code))
+    except MailError as exc:
+        s.accounts.unsent(me["id"])
+        current_app.logger.warning("account edit code not sent: %s", exc.kind)
+        flash("تعذر إرسال الرمز إلى بريدك. حاول بعد قليل.", "error")
+        return redirect(url_for(".details"), 303)
+    session["edit"] = {"a": me["id"], "n": nonce}
+    flash(f"أرسلنا رمزاً إلى {me['email']}. اكتبه هنا لتعديل بياناتك.")
+    return redirect(url_for(".details"), 303)
+
+
+@account.post("/account/details/verify")
+def verify():
+    s, me = svc(), _me()
+    step = session.get("edit") or {}
+    typed = western(request.form.get("code", "")).strip().replace(" ", "")
+    if step.get("a") != me["id"] or not step.get("n"):
+        return redirect(url_for(".details"), 303)
+    if too_many("account_check", 20, per=600):
+        flash("محاولات كثيرة. انتظر دقائق.", "error")
+        return redirect(url_for(".details"), 303)
+    outcome = s.accounts.check(me["id"], step["n"], typed) if typed.isdigit() and len(typed) == 6 else "wrong"
+    if outcome == "ok":
+        session["edit"] = {"a": me["id"], "until": int(time.time()) + EDIT_FOR}
+        flash("يمكنك الآن تعديل اسمك ورقم جوالك خلال 10 دقائق.")
+    else:
+        if outcome == "expired":
+            session.pop("edit", None)
+        flash(WRONG if outcome == "wrong" else EXPIRED, "error")
+    return redirect(url_for(".details"), 303)
 
 
 @account.post("/account/photo")

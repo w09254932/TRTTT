@@ -16,7 +16,8 @@
   {% endif %}
   <dl class="facts">
     <div><dt>العميل</dt><dd>{% if inv.customer %}<a href="{{ url_for('book.person', cid=inv.customer) }}">{{ inv.private.name or 'بدون اسم' }}</a>{% else %}{{ inv.private.name or 'يكتبه العميل' }}{% endif %}</dd></div>
-    {% if inv.product %}<div><dt>من المتجر</dt><dd>{% if product %}<a href="{{ url_for('shop_admin.product', pid=inv.product) }}">{{ product.name }}</a>{% else %}منتج محذوف{% endif %}</dd></div>{% endif %}
+    {% if inv.lines %}<div><dt>من المتجر</dt><dd>{% for line in inv.lines %}<a href="{{ url_for('shop_admin.product', pid=line.pid) }}">{{ line.name }}</a> × {{ line.qty }}{% if not loop.last %}<br>{% endif %}{% endfor %}</dd></div>
+    {% elif inv.product %}<div><dt>من المتجر</dt><dd>{% if product %}<a href="{{ url_for('shop_admin.product', pid=inv.product) }}">{{ product.name }}</a>{% else %}منتج محذوف{% endif %}</dd></div>{% endif %}
     <div><dt>الجوال</dt><dd>{% if inv.private.phone %}<bdi>{{ inv.private.phone|phone }}</bdi> <small class="muted">{{ inv.private.phone|phone_country }}</small>{% else %}يكتبه العميل{% endif %}</dd></div>
     <div><dt>البريد</dt><dd><bdi>{{ inv.private.email or 'يكتبه العميل' }}</bdi></dd></div>
     <div><dt>أُنشئت</dt><dd><bdi>{{ inv.created_at|when }}</bdi></dd></div>
@@ -58,6 +59,13 @@
     {%- elif inv.status == 'pending' %}يُرسل تلقائياً إلى بريد العميل لحظة تأكيد الدفع.
     {%- elif inv.status == 'paid' %}لم يُرسل بعد.
     {%- else %}لن يُرسل لأن الفاتورة {{ status_ar[inv.status] }}.{% endif %}</p>
+  {% if missing %}
+  <p class="alert">ينقص هذا الطلب {{ missing }} من الأكواد لأن المخزون نفد وقت الدفع. أضف أكواداً للمنتج ثم سلّمها من هنا، وتصل للعميل مع ما سبقها.</p>
+  <form method="post" action="{{ url_for('admin.from_stock', inv_id=inv.id) }}" class="gap">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="primary" type="submit">تسليم الأكواد الناقصة من المخزون</button>
+  </form>
+  {% endif %}
   {% if inv.status == 'paid' and mailing and delivery.state != 'sending' %}
   <form method="post" action="{{ url_for('admin.send_goods', inv_id=inv.id) }}" class="find gap"{% if delivery.state == 'sent' %} data-confirm="أُرسل الطلب من قبل. هل تريد إرساله مرة أخرى؟"{% endif %}>
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">

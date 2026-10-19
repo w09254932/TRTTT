@@ -391,6 +391,57 @@ progress::-moz-progress-bar { background: var(--accent); border-radius: 99px; }
 .photo-do [hidden] { display: none; }
 .photo-do .pick, .photo-do .primary { white-space: nowrap; }
 .setting p { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.lock-note { display: flex; align-items: flex-start; gap: .5rem; padding: .7rem .85rem; font-size: .85rem; color: var(--muted); background: var(--field); border: 1px solid var(--line); border-radius: 12px; }
+.lock-note svg { flex: none; width: 17px; height: 17px; margin-top: .2rem; color: var(--accent-text); }
+.edit-code { margin: .9rem 0 .4rem; }
+.edit-code .code { margin: 0; }
+input[readonly] { cursor: default; }
+
+/* the cart */
+.bar-end { display: flex; align-items: center; gap: .5rem; flex: none; }
+.cart-link {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px; color: var(--text);
+  border: 1px solid var(--line); border-radius: 50%; background: var(--panel);
+}
+.cart-link:hover { border-color: var(--accent); }
+.cart-link svg { width: 20px; height: 20px; }
+.cart-link .badge {
+  position: absolute; top: -5px; inset-inline-end: -5px; min-width: 19px; height: 19px; padding: 0 5px; display: grid; place-items: center;
+  font: 700 .7rem/1 var(--display); color: var(--on-accent); background: var(--accent); border-radius: 99px; border: 2px solid var(--bg);
+}
+.basket h1 { margin-bottom: 1rem; }
+.lines { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .6rem; }
+.line {
+  display: grid; gap: .6rem; padding: .9rem 1rem; border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+}
+.line h2 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.line-what p { margin: .15rem 0 0; font-size: .8rem; }
+.bad-text { color: var(--bad); }
+.line-do { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 99px; background: var(--field); }
+.qty form { margin: 0; }
+.qty button {
+  width: 38px; height: 38px; padding: 0; color: var(--text); font: 700 1.15rem/1 var(--display);
+  background: none; border: 0; border-radius: 50%; cursor: pointer;
+}
+.qty button:hover:not(:disabled) { color: var(--accent-text); }
+.qty output { min-width: 2ch; text-align: center; font: 700 1rem var(--display); }
+.line-sum { margin: 0; color: var(--muted); font-size: .85rem; }
+.line-sum b { font: 700 1.15rem var(--display); color: var(--accent-text); }
+.total-box { padding: 1.1rem 1rem; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.total-box > p:first-child { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 .5rem; font-weight: 600; }
+.total-box > p:first-child b { font: 700 1.7rem var(--display); color: var(--accent-text); }
+.total-box > p:first-child small { font: 600 .8rem var(--body); color: var(--muted); }
+.total-box .muted { font-size: .82rem; overflow-wrap: anywhere; }
+.total-box .primary, .total-box form { width: 100%; margin: 0; }
+.peek-buy { display: grid; gap: .5rem; }
+.peek-buy form { margin: 0; }
+.peek-buy button { width: 100%; }
+.pay-lines { list-style: none; margin: .4rem auto .5rem; padding: 0; max-width: 34ch; font-size: .85rem; color: var(--muted); }
+.pay-lines li { display: flex; gap: .5rem; justify-content: space-between; padding: .2rem 0; border-bottom: 1px dashed var(--line); }
+.pay-lines li span:first-child { flex: 1; text-align: start; overflow-wrap: anywhere; }
+.pay-lines b { color: var(--text); font-weight: 600; }
 .shop-head { text-align: center; margin-bottom: 1.6rem; }
 .shop-head h1 { font-size: clamp(2rem, 10vw, 2.5rem); line-height: 1.25; margin-bottom: .5rem; text-wrap: balance; }
 .shop-head p { max-width: 32ch; margin: 0 auto; color: var(--muted); text-wrap: balance; }

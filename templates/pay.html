@@ -8,6 +8,9 @@
   <p class="issuer">{{ store_name }}</p>
   <h1>{{ inv.private.title }}</h1>
   {% if about %}<p class="about">{{ about }}</p>{% endif %}
+  {% if inv.lines and (inv.lines|length > 1 or inv.lines[0].qty > 1) %}
+  <ul class="pay-lines">{% for line in inv.lines %}<li><span dir="auto">{{ line.name }}</span><span>× {{ line.qty }}</span><b>{{ (line.price * line.qty)|money }}</b></li>{% endfor %}</ul>
+  {% endif %}
   <p class="due"><b>{{ inv.amount|money }}</b> ر.س</p>
   <p class="muted">فاتورة رقم <bdi>{{ inv.id }}</bdi></p>
   <hr class="tear">

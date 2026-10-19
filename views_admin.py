@@ -164,9 +164,11 @@ def invoice(inv_id):
     text = quote(f"فاتورة {inv['private'].get('title', '')} بمبلغ {inv['amount']:,.2f} ر.س\n{link}")
     phone = inv["private"].get("phone", "").lstrip("+")
     product = svc().shop.get(inv["product"]) if inv.get("product") else None
+    missing = svc().shop.missing(inv) if inv.get("product") and inv["status"] == "paid" else 0
     return render_template("invoice.html", inv=inv, link=link, events=svc().store.events_for(inv_id),
                            whatsapp=f"https://wa.me/{phone}?text={text}", goods=svc().store.goods(inv),
-                           mailing=svc().mailer.ready, delivery=inv.get("delivery") or {}, product=product)
+                           mailing=svc().mailer.ready, delivery=inv.get("delivery") or {}, product=product,
+                           missing=missing)
 
 
 @admin.post("/invoices/<inv_id>/goods")
@@ -216,9 +218,11 @@ def from_stock(inv_id):
     outcome = svc().shop.assign(inv_id) if inv.get("product") else "none"
     if outcome == "empty":
         flash("لا يوجد كود في مخزون هذا المنتج. أضف أكواداً من صفحة المتجر ثم حاول مرة أخرى.", "error")
-    elif outcome in ("assigned", "already"):
+    elif outcome in ("assigned", "already", "partial"):
         state, reason = notices.deliver(svc(), inv_id, again=True) if svc().mailer.ready else (None, "")
-        if state == "sent":
+        if outcome == "partial":
+            flash("أُخذ ما في المخزون، وما زالت أكواد ناقصة. أضف أكواداً ثم اضغط مرة أخرى.", "error")
+        elif state == "sent":
             flash("أُخذ كود من المخزون وأُرسل إلى بريد العميل.")
         elif state == "failed":
             flash(f"أُخذ كود من المخزون لكن لم يُرسل: {hint(reason)}", "error")

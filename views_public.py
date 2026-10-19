@@ -49,7 +49,7 @@ def _store_open(inv):
 def _about(inv):
     """The product's description in full, for a store order still waiting to be paid: the store's small cards only
     have room for its first lines."""
-    if inv["status"] != "pending" or not inv.get("product"):
+    if inv["status"] != "pending" or not inv.get("product") or len(inv.get("lines") or [1]) > 1:
         return ""
     product = svc().shop.get(inv["product"])
     return product["description"] if product else ""

@@ -1,5 +1,5 @@
-"""The shop: products, each with a stock of codes, the public store page, and one code handed out per paid
-order. Codes are encrypted like everything private. A product counts its own stock, and a code is held for an
+"""The shop: products, each with a stock of codes, the public store page, and the codes handed out for a paid
+order (several products and quantities, from the cart: cart.py). Codes are encrypted like everything private. A product counts its own stock, and a code is held for an
 order from the moment its customer goes to pay, so two customers can never pay for the same last code."""
 import re
 import secrets
@@ -20,8 +20,44 @@ CID_RE = re.compile(r"^\d{20}[a-z0-9]{4}$")
 
 
 def _live(holds, moment, skip=None):
-    """The holds of orders still being paid."""
-    return {inv: until for inv, until in (holds or {}).items() if until > moment and inv != skip}
+    """The holds of orders still being paid (one per code), leaving out those of the order `skip`."""
+    return {key: until for key, until in (holds or {}).items() if until > moment and not (skip and _mine(key, skip))}
+
+
+def _mine(key, inv_id):
+    return key == inv_id or key.startswith(inv_id + "#")
+
+
+def _hold_keys(inv_id, qty):
+    """One hold per code: the order's id for the first, then id#1, id#2..."""
+    return [inv_id if n == 0 else f"{inv_id}#{n}" for n in range(max(0, qty))]
+
+
+def lines_of(inv):
+    """The order's lines [{pid, qty, name, price, note}]; an order from before the cart is one of its product."""
+    if inv.get("lines"):
+        return inv["lines"]
+    return [{"pid": inv["product"], "qty": 1, "name": "", "price": 0, "note": ""}] if inv.get("product") else []
+
+
+def order_title(lines):
+    parts = [line["name"] + (f" × {line['qty']}" if line["qty"] > 1 else "") for line in lines]
+    return " + ".join(parts)[:120]
+
+
+def goods_text(lines, picked):
+    """The order emailed to the customer: each product's codes, then how to use them."""
+    if len(lines) == 1 and lines[0]["qty"] == 1:
+        codes, note = picked.get(lines[0]["pid"], []), lines[0].get("note", "")
+        return f"{codes[0]}\n\n{note}" if codes and note else (codes[0] if codes else "")
+    blocks = []
+    for line in lines:
+        codes = picked.get(line["pid"], [])
+        if not codes:
+            continue
+        head = f"{line['name']} × {line['qty']}" if line["name"] else ""
+        blocks.append("\n".join(([head] if head else []) + codes + ([line["note"]] if line.get("note") else [])))
+    return "\n\n".join(blocks)
 
 
 class Shop:
@@ -141,85 +177,140 @@ class Shop:
         return self._run(work)
 
     # ---- orders
-    def order(self, pid):
-        """Opens an invoice for one of this product. Returns its token, or None when it cannot be bought."""
-        product = self.get(pid)
-        if not product or not product["active"] or product["available"] <= 0:
-            return None
-        inv_id = self.store.create_invoice(product["price"], {"title": product["name"]}, 0,
-                                           extra={"product": pid}, minutes=ORDER_MINUTES)
-        return self.store.get(inv_id)["token"]
+    def order(self, lines, person, buyer, customer=None):
+        """Opens an invoice for the cart's lines [(pid, qty)] of a signed-in customer, with their details written in.
+        Returns its token, or (None, why) when a product cannot be bought in that quantity."""
+        picked = []
+        for pid, qty in lines:
+            product = self.get(pid)
+            if not product or not product["active"] or product["available"] <= 0:
+                return None, f"«{product['name']}» غير متاح الآن." if product else "منتج في سلتك لم يعد موجوداً."
+            if qty > product["available"]:
+                return None, f"المتوفر من «{product['name']}» {product['available']} فقط."
+            picked.append({"pid": pid, "qty": qty, "name": product["name"], "price": product["price"],
+                           "note": product["note"]})
+        if not picked:
+            return None, "سلتك فارغة."
+        amount = round(sum(line["price"] * line["qty"] for line in picked), 2)
+        customer = customer() if callable(customer) else customer
+        inv_id = self.store.create_invoice(amount, {"title": order_title(picked), **person}, 0, customer=customer,
+                                           extra={"product": picked[0]["pid"], "lines": picked, "buyer": buyer},
+                                           minutes=ORDER_MINUTES)
+        return self.store.get(inv_id)["token"], None
 
     def hold(self, inv):
-        """Keeps a code aside for this order while its customer pays. False when none is left for it."""
-        ref = self.products.document(inv["product"])
+        """Keeps the order's codes aside while its customer pays. False when one product has too few left."""
+        lines = lines_of(inv)
+        refs = {line["pid"]: self.products.document(line["pid"]) for line in lines}
 
         def work(tx):
-            snap, moment = _read(tx, ref), now()
-            data = snap.to_dict() or {}
-            if not snap.exists or not data.get("active", True):
-                return False
-            holds = _live(data.get("holds"), moment, skip=inv["id"])
-            if data.get("stock", 0) - len(holds) <= 0:
-                return False
-            holds[inv["id"]] = inv["expires_at"]
-            tx.update(ref, {"holds": holds})
+            moment, changes = now(), {}
+            snaps = {pid: _read(tx, ref) for pid, ref in refs.items()}
+            for line in lines:
+                snap = snaps[line["pid"]]
+                data = snap.to_dict() or {}
+                if not snap.exists or not data.get("active", True):
+                    return False
+                holds = _live(data.get("holds"), moment, skip=inv["id"])
+                if data.get("stock", 0) - len(holds) < line["qty"]:
+                    return False
+                for key in _hold_keys(inv["id"], line["qty"]):
+                    holds[key] = inv["expires_at"]
+                changes[line["pid"]] = holds
+            for pid, holds in changes.items():
+                tx.update(refs[pid], {"holds": holds})
             return True
 
         return self._run(work)
 
     def release(self, inv):
-        """A cancelled order gives back the code it was holding."""
-        ref = self.products.document(inv["product"])
+        """A cancelled order gives back the codes it was holding."""
+        for line in lines_of(inv):
+            ref = self.products.document(line["pid"])
 
-        def work(tx):
-            snap = _read(tx, ref)
-            holds = (snap.to_dict() or {}).get("holds") or {}
-            if snap.exists and inv["id"] in holds:
-                tx.update(ref, {"holds": _live(holds, now(), skip=inv["id"])})
+            def work(tx):
+                snap = _read(tx, ref)
+                holds = (snap.to_dict() or {}).get("holds") or {}
+                if snap.exists and any(_mine(key, inv["id"]) for key in holds):
+                    tx.update(ref, {"holds": _live(holds, now(), skip=inv["id"])})
 
-        self._run(work)
+            self._run(work)
+
+    def missing(self, inv):
+        """How many codes a paid shop order is still owed."""
+        given = inv.get("given") or {}
+        return sum(max(0, line["qty"] - len(given.get(line["pid"], []))) for line in lines_of(inv))
 
     def assign(self, inv_id):
-        """Gives a paid shop order its code, once: the code becomes the order emailed to the customer.
-        Returns 'assigned', 'already', 'empty' (no code left), 'unpaid' or 'none' (not a shop order)."""
+        """Gives a paid shop order its codes, once each: they become the order emailed to the customer.
+        Returns 'assigned', 'already', 'partial' (stock ran out on the way), 'empty' (no code at all),
+        'unpaid' or 'none' (not a shop order)."""
         inv_ref = self.store.invoices.document(inv_id)
+        data = inv_ref.get().to_dict() or {}
+        lines = lines_of(data)
+        if not lines:
+            return "none"
+        if not data.get("lines") and data.get("code_id"):
+            return "already"     # an order from before the cart, handed out already
+        handed, short, given = 0, False, data.get("given") or {}
+        for line in lines:
+            for _ in range(max(0, line["qty"] - len(given.get(line["pid"], [])))):
+                result = self._give_one(inv_ref, inv_id, line)
+                if result == "given":
+                    handed += 1
+                    continue
+                if result == "unpaid":
+                    return "unpaid"
+                short = short or result == "empty"
+                break
+        if short:
+            return "partial" if handed or (inv_ref.get().to_dict() or {}).get("given") else "empty"
+        return "assigned" if handed else "already"
+
+    def _give_one(self, inv_ref, inv_id, line):
+        """One code of this line to the order. 'given', 'full' (the line has all its codes), 'empty' or 'unpaid'."""
+        pid, ref = line["pid"], self.products.document(line["pid"])
         for _ in range(6):
-            pid = (inv_ref.get().to_dict() or {}).get("product")
-            if not pid or not PID_RE.match(pid):
-                return "none"
             free = self._first_free(pid)
-            ref = self.products.document(pid)
 
             def work(tx):
                 inv = _read(tx, inv_ref).to_dict() or {}
-                if inv.get("code_id"):
-                    return "already"
                 if inv.get("status") != "paid":
                     return "unpaid"
+                given = inv.get("given") or {}
+                if len(given.get(pid, [])) >= line["qty"]:
+                    return "full"
                 snap = _read(tx, ref)
-                holds = _live((snap.to_dict() or {}).get("holds"), now(), skip=inv_id)
                 if not free:
-                    if snap.exists:
-                        tx.update(ref, {"holds": holds})
                     return "empty"
                 code_ref = self._codes(pid).document(free.id)
                 code = _read(tx, code_ref)
                 if not code.exists or (code.to_dict() or {}).get("state") != "free":
                     return "retry"     # sold to another order a moment ago: take the next one
-                text = self._open_code(pid, code)
-                note = (snap.to_dict() or {}).get("note", "")
+                picked = self.vault.open(inv.get("picked", ""), "picked:" + inv_id) if inv.get("picked") else {}
+                picked.setdefault(pid, []).append(self._open_code(pid, code))
+                given.setdefault(pid, []).append(free.id)
+                left = line["qty"] - len(given[pid])     # this order's codes of the product still held
+                holds = _live((snap.to_dict() or {}).get("holds"), now(), skip=inv_id)
+                for key in _hold_keys(inv_id, left):
+                    holds[key] = (inv.get("expires_at") or now())
                 tx.update(code_ref, {"state": "sold", "invoice": inv_id, "sold_at": now()})
-                tx.update(inv_ref, {"code_id": free.id, "goods": self.store._seal_goods(
-                    f"{text}\n\n{note}" if note else text, inv_id)})
+                lines = [dict(item) for item in lines_of(inv)]
+                for item in lines:     # an order from before the cart takes the product's note now
+                    if item["pid"] == pid and not item.get("note"):
+                        item["note"] = (snap.to_dict() or {}).get("note", "")
+                changes = {"given": given, "picked": self.vault.seal(picked, "picked:" + inv_id),
+                           "goods": self.store._seal_goods(goods_text(lines, picked), inv_id)}
+                if not inv.get("code_id"):
+                    changes["code_id"] = free.id
+                tx.update(inv_ref, changes)
                 tx.update(ref, {"stock": firestore.Increment(-1), "sold": firestore.Increment(1), "holds": holds})
-                return "assigned"
+                return "given"
 
             result = self._run(work)
             if result != "retry":
                 return result
         return "empty"
-
 
 def svc():
     return current_app.extensions["svc"]
@@ -239,17 +330,6 @@ def limit():
 def store():
     return render_template("shop.html", products=svc().shop.catalog(), brand=svc().brand.get(),
                            owner=signed_in(svc().cfg))
-
-
-@shop.post("/order/<pid>")
-def order(pid):
-    if too_many("order", 10, per=600):
-        abort(429)
-    token = svc().shop.order(pid) if PID_RE.match(pid) else None
-    if not token:
-        flash("هذا المنتج غير متاح الآن. اختر منتجاً آخر.", "error")
-        return redirect(url_for(".store"), 303)
-    return redirect(url_for("pub.invoice", token=token), 303)
 
 
 # Links from before the dashboard moved to /admin (owner emails, bookmarks).

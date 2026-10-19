@@ -24,16 +24,40 @@
 <section class="sheet">
   <h2>بياناتي</h2>
   {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  {% if locked.name or locked.phone %}
+  <p class="lock-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>لا يمكن تغيير الاسم ورقم الجوال بعد حفظهما. لتعديلهما نرسل رمزاً إلى بريدك.</p>
+  {% elif unlocked %}
+  <p class="note">يمكنك تعديل اسمك ورقم جوالك الآن. يُقفلان من جديد بعد الحفظ.</p>
+  {% else %}
+  <p class="muted">اكتب اسمك ورقم جوالك كما تريدهما في طلباتك. بعد الحفظ لا يمكن تغييرهما إلا برمز يصل إلى بريدك.</p>
+  {% endif %}
   <form method="post" action="{{ url_for('account.details') }}">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     <p><label for="name">الاسم</label>
-      <input id="name" name="name" autocomplete="name" maxlength="80" required value="{{ form.name or '' }}"></p>
+      {% if locked.name %}<input id="name" value="{{ me.name }}" readonly>
+      {% else %}<input id="name" name="name" autocomplete="name" maxlength="80" required value="{{ form.name or '' }}">{% endif %}</p>
     <p><label for="phone">رقم الجوال</label>
-      {% with phone_id="phone", phone_value=form.phone, phone_cc=form.cc, phone_required=false %}{% include "phone.html" %}{% endwith %}</p>
+      {% if locked.phone %}<input id="phone" dir="ltr" value="{{ me.phone|phone }}" readonly>
+      {% else %}{% with phone_id="phone", phone_value=form.phone, phone_cc=form.cc, phone_required=true %}{% include "phone.html" %}{% endwith %}{% endif %}</p>
     <p><label for="email">البريد الإلكتروني</label>
       <input id="email" type="email" dir="ltr" value="{{ me.email }}" readonly>
-      <span class="hint">بريد حسابك وتصل إليه طلباتك. لاستخدام بريد آخر سجّل الدخول به.</span></p>
-    <button class="primary" type="submit">حفظ البيانات</button>
+      <span class="hint">لا يمكن تغيير البريد، فهو حسابك وتصل إليه طلباتك.</span></p>
+    {% if not (locked.name and locked.phone) %}<button class="primary" type="submit">حفظ البيانات</button>{% endif %}
   </form>
+  {% if locked.name or locked.phone %}
+  {% if asking %}
+  <form method="post" action="{{ url_for('account.verify') }}" class="find edit-code" autocomplete="off">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="edit-code">الرمز الذي وصل إلى بريدك</label>
+    <input class="code" id="edit-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" dir="ltr" required>
+    <button class="primary" type="submit">تأكيد</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{{ url_for('account.unlock') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="{{ 'plain' if asking else 'quiet' }}" type="submit">{{ 'أرسل رمزاً جديداً' if asking else 'طلب تعديل البيانات' }}</button>
+  </form>
+  {% endif %}
 </section>
 {% endblock %}

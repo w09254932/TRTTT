@@ -145,9 +145,14 @@ def owner_notice(s, inv_id, delivered=None):
             rows.append(("تسليم الطلب", late or SENT_TEXT.get(delivered, "جارٍ الإرسال")))
         elif inv.get("product"):
             rows.append(("تسليم الطلب", NO_CODE_TEXT))
-        if inv.get("product"):
-            product = s.shop.get(inv["product"])
-            rows.append(("المتبقي من أكواد المنتج", str(product["available"]) if product else "المنتج محذوف"))
+        short = s.shop.missing(inv) if inv.get("product") else 0
+        if short and inv.get("goods"):
+            rows.append(("أكواد ناقصة", f"{short}. " + NO_CODE_TEXT))
+        lines = inv.get("lines") or ([{"pid": inv["product"], "name": ""}] if inv.get("product") else [])
+        for line in lines:
+            product = s.shop.get(line["pid"])
+            label = "المتبقي من أكواد المنتج" if len(lines) == 1 else f"المتبقي من {line['name']}"
+            rows.append((label, str(product["available"]) if product else "المنتج محذوف"))
         heading = "وصلتك دفعة جديدة" if before == "pending" else f"وصلتك دفعة لفاتورة {CLOSED_AR.get(before, before)}"
         mail = message(s, f"دفعة جديدة {amount}: {title}", heading, rows=rows,
                        button=("فتح الفاتورة", f"{s.cfg.base_url}/admin/invoices/{inv['id']}"))

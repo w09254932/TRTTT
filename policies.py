@@ -5,7 +5,7 @@ from flask import Blueprint, abort, render_template
 from products import ORDER_MINUTES
 from security import too_many
 
-VERSION = "2026-10-19.2"              # change it whenever the wording of a policy changes
+VERSION = "2026-10-19.3"              # change it whenever the wording of a policy changes
 UPDATED = "19 أكتوبر 2026"
 AGREE = ("agree_terms", "agree_refund")
 NOT_AGREED = "للمتابعة إلى الدفع وافق على الشروط والأحكام وسياسة الخصوصية، وعلى سياسة الاسترداد والإلغاء."
