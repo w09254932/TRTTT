@@ -4,6 +4,8 @@ import re
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
+from accounts import account_id, signed_in_customer
+
 import legacy_flow
 from declines import specific
 from edfapay import GatewayError
@@ -56,6 +58,9 @@ def _about(inv):
 def _page(inv, form=None, error=None, code=200):
     # Whatever the owner did not fill in is asked on every attempt, so a mistake can be corrected.
     need = [field for field in CLEANERS if not inv["fixed"].get(field)]
+    if form is None and "email" in need:  # a signed-in customer finds their email already written
+        me = signed_in_customer()
+        form = {"email": me["email"]} if me else None
     return render_template("pay.html", inv=inv, need=need, form=form or {}, error=error, brand=svc().brand.get(),
                            mailing=svc().mailer.ready, store_open=_store_open(inv), about=_about(inv)), code
 
@@ -92,6 +97,8 @@ def pay(token):
     order_id = svc().store.start_attempt(inv["id"], payer or None, agreed=VERSION)
     if not order_id:
         return _page(inv, request.form, BUSY, 429)
+    if customer.get("email"):
+        svc().store.set_buyer(inv["id"], account_id(svc().store.vault, customer["email"].lower()))
     if payer:
         linked = svc().book.remember(customer, new_invoice=not inv.get("customer"), overwrite=False)
         if linked and linked != inv.get("customer"):

@@ -41,7 +41,7 @@ def create_app(cfg=None, client=None):
         SESSION_COOKIE_SECURE=secure,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
-        PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+        PERMANENT_SESSION_LIFETIME=timedelta(days=30),   # the owner's own session ends sooner (security.py)
         MAX_CONTENT_LENGTH=64 * 1024,
     )
 
@@ -106,6 +106,7 @@ def create_app(cfg=None, client=None):
                                 cfg.edfa_fallback_ip)
     else:
         gateway = EdfaPay(cfg.edfa_base_url, cfg.edfa_api_key, cfg.edfa_webhook_secret)
+    from accounts import Accounts, account, signed_in_customer
     from brand import Brand, brand
     from broadcasts import Broadcasts, leave, messages
     from customers import CustomerBook, book
@@ -119,7 +120,10 @@ def create_app(cfg=None, client=None):
     app.extensions["svc"] = SimpleNamespace(cfg=cfg, store=store, gateway=gateway,
                                             book=CustomerBook(store.db, vault), brand=Brand(store.db),
                                             mailer=Mailer(cfg), codes=LoginCodes(store.db, cfg),
-                                            shop=Shop(store.db, vault, store), broadcasts=Broadcasts(store.db))
+                                            shop=Shop(store.db, vault, store), broadcasts=Broadcasts(store.db),
+                                            accounts=Accounts(store.db, vault, cfg))
+    app.add_template_global(signed_in_customer, "customer_account")
+    app.add_template_global(lambda: app.extensions["svc"].brand.get(), "brand_look")
     app.register_blueprint(admin)
     app.register_blueprint(pub)
     app.register_blueprint(book)
@@ -130,6 +134,7 @@ def create_app(cfg=None, client=None):
     app.register_blueprint(policies)
     app.register_blueprint(messages)
     app.register_blueprint(leave)
+    app.register_blueprint(account)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

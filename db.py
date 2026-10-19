@@ -255,6 +255,14 @@ class Store:
     def set_customer(self, inv_id, customer):
         self.invoices.document(inv_id).update({"customer": customer})
 
+    def set_buyer(self, inv_id, buyer):
+        """The account fingerprint of the email this invoice was paid with (accounts.py finds its orders by it)."""
+        self.invoices.document(inv_id).update({"buyer": buyer})
+
+    def for_buyer(self, buyer, limit=300):
+        rows = [self._load(snap) for snap in self.invoices.where("buyer", "==", buyer).limit(limit).stream()]
+        return sorted(rows, key=lambda inv: inv["created_at"], reverse=True)
+
     def for_customer(self, customer, limit=300):
         rows = [self._load(snap) for snap in self.invoices.where("customer", "==", customer).limit(limit).stream()]
         return sorted(rows, key=lambda inv: inv["created_at"], reverse=True)

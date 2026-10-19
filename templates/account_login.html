@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% set brand = brand_look() %}
+{% block title %}تسجيل الدخول | {{ store_name }}{% endblock %}
+{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block body %}
+{% include "topbar.html" %}
+<main class="gate">
+  <h1>تسجيل الدخول</h1>
+  <p class="muted">اكتب بريدك ونرسل لك رمز دخول من 6 أرقام، بدون كلمة مرور. في حسابك تجد طلباتك، وتعيد إرسال أكوادها إلى بريدك.</p>
+  {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('account.login') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <label for="email">البريد الإلكتروني</label>
+    <input id="email" name="email" type="email" autocomplete="email" dir="ltr" maxlength="120" required value="{{ email }}">
+    <button class="primary" type="submit">أرسل رمز الدخول</button>
+  </form>
+  <p class="again"><a href="{{ url_for('shop.store') }}">تابع التسوق دون حساب</a></p>
+</main>
+{% endblock %}
