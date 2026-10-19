@@ -18,9 +18,11 @@ def svc():
 
 
 def contents():
-    """{pid: qty} as kept in the session, cleaned."""
-    raw = session.get("cart") or {}
-    return {pid: min(MAX_QTY, int(qty)) for pid, qty in raw.items()
+    """{pid: qty} in the order they were added, cleaned. Kept as [[pid, qty], ...] in the session:
+    the session cookie sorts dict keys, which shuffled the cart and the order title."""
+    raw = session.get("cart") or []
+    pairs = raw.items() if isinstance(raw, dict) else [p for p in raw if isinstance(p, list) and len(p) == 2]
+    return {str(pid): min(MAX_QTY, int(qty)) for pid, qty in pairs
             if PID_RE.match(str(pid)) and str(qty).isdigit() and int(qty) > 0}
 
 
@@ -31,7 +33,7 @@ def count():
 
 def _save(items):
     if items:
-        session["cart"] = items
+        session["cart"] = [[pid, qty] for pid, qty in items.items()]
     else:
         session.pop("cart", None)
 
@@ -137,8 +139,10 @@ def checkout():
 
 def _gift(me):
     """({email, note}, None) when the order is a gift, (None, None) when not, or (None, why)."""
-    if not request.form.get("gift_email", "").strip():
+    if request.form.get("for") != "gift":
         return None, None
+    if not request.form.get("gift_email", "").strip():
+        return None, "اكتب بريد صديقك لتصله الهدية."
     email, error = clean_email(request.form.get("gift_email", ""))
     if error:
         return None, "اكتب بريد صديقك صحيحاً لتصله الهدية."
