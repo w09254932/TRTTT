@@ -43,6 +43,12 @@ class CustomerBook:
         if ref.get().exists:
             ref.update({"optout": True, "optout_at": now()})
 
+    def start_mail(self, cid):
+        """The customer turned offer emails back on from their account's settings."""
+        ref = self.col.document(cid)
+        if ref.get().exists:
+            ref.update({"optout": False})
+
     def recent(self, limit=50):
         query = self.col.order_by("last_at", direction=firestore.Query.DESCENDING).limit(limit)
         return [self._load(snap) for snap in query.stream()]

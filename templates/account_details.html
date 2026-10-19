@@ -1,0 +1,39 @@
+{% extends "account.html" %}
+{% block part %}
+<section class="sheet">
+  <h2>صورتك</h2>
+  <div class="photo-row">
+    <span class="avatar big">{% if me.photo %}<img src="{{ url_for('account.photo', v=me.photo) }}" alt="">{% else %}{{ (me.name or me.email)[:1]|upper }}{% endif %}</span>
+    <div class="photo-do">
+      <form method="post" action="{{ url_for('account.upload_photo') }}" enctype="multipart/form-data" data-photo>
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <label class="quiet pick" for="photo">{{ 'تغيير الصورة' if me.photo else 'اختر صورة' }}</label>
+        <input class="visually-hidden" id="photo" name="photo" type="file" accept="image/png,image/jpeg,image/webp">
+        <button class="primary" type="submit" data-photo-send>حفظ الصورة</button>
+      </form>
+      {% if me.photo %}
+      <form method="post" action="{{ url_for('account.remove_photo') }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="plain" type="submit">حذف الصورة</button>
+      </form>
+      {% endif %}
+      <p class="hint">PNG أو JPG أو WebP. تُصغَّر تلقائياً، ولا يراها غيرك.</p>
+    </div>
+  </div>
+</section>
+<section class="sheet">
+  <h2>بياناتي</h2>
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('account.details') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p><label for="name">الاسم</label>
+      <input id="name" name="name" autocomplete="name" maxlength="80" required value="{{ form.name or '' }}"></p>
+    <p><label for="phone">رقم الجوال</label>
+      {% with phone_id="phone", phone_value=form.phone, phone_cc=form.cc, phone_required=false %}{% include "phone.html" %}{% endwith %}</p>
+    <p><label for="email">البريد الإلكتروني</label>
+      <input id="email" type="email" dir="ltr" value="{{ me.email }}" readonly>
+      <span class="hint">بريد حسابك وتصل إليه طلباتك. لاستخدام بريد آخر سجّل الدخول به.</span></p>
+    <button class="primary" type="submit">حفظ البيانات</button>
+  </form>
+</section>
+{% endblock %}

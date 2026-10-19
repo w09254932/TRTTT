@@ -1,0 +1,34 @@
+{% extends "account.html" %}
+{% block part %}
+<section class="sheet">
+  <h2>رسائل العروض</h2>
+  {% if saved %}
+  <form method="post" action="{{ url_for('account.offers') }}" class="setting">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="offers" value="{{ '0' if offers else '1' }}">
+    <p><span class="chip {{ 'paid' if offers else 'expired' }}">{{ 'مفعّلة' if offers else 'متوقفة' }}</span>
+      {{ 'تصلك عروض المتجر وأخباره على بريدك أحياناً.' if offers else 'لا تصلك عروض المتجر وأخباره.' }}</p>
+    <button class="quiet" type="submit">{{ 'إيقاف رسائل العروض' if offers else 'تفعيل رسائل العروض' }}</button>
+  </form>
+  {% else %}
+  <p class="muted">بعد أول طلب لك يمكنك من هنا إيقاف رسائل العروض أو تفعيلها.</p>
+  {% endif %}
+  <p class="hint">رسائل طلباتك، مثل الكود بعد الدفع ورمز الدخول، تصلك دائماً.</p>
+</section>
+<section class="sheet">
+  <h2>الأمان</h2>
+  <p class="muted">تدخل برمز يصل إلى بريدك كل مرة، فلا كلمة مرور تُسرق. إن نسيت حسابك مفتوحاً على جهاز آخر فأخرجه من هنا.</p>
+  <form method="post" action="{{ url_for('account.everywhere') }}" data-confirm="سيُطلب رمز دخول جديد على كل الأجهزة، ومنها هذا الجهاز. هل تريد المتابعة؟">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="quiet" type="submit">تسجيل الخروج من كل الأجهزة</button>
+  </form>
+</section>
+<section class="sheet">
+  <h2>حذف الحساب</h2>
+  <p class="muted">يُحذف حسابك واسمك وجوالك وصورتك منه. طلباتك السابقة تبقى في سجلات المتجر كما تنص <a href="{{ url_for('policies.privacy') }}">سياسة الخصوصية</a>، وتظهر لك من جديد إن سجلت الدخول بالبريد نفسه.</p>
+  <form method="post" action="{{ url_for('account.delete') }}" data-confirm="حذف حسابك نهائياً؟ لا يمكن التراجع.">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="danger" type="submit">حذف حسابي</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,28 +1,34 @@
 """Customer accounts, optional: buying never needs one. A customer signs in with their email and a six-digit code sent
-to it (no password to forget), then sees their orders, pays a waiting one, and has the code of a paid order sent to
-their email again. The code is never shown on the site. An account is only a keyed fingerprint of the email plus the
-email itself, encrypted; orders are found by the email they were paid with, or through the customer book."""
+to it (no password to forget). Their account has three parts: my orders (pay a waiting one, have a paid order's code
+sent to their email again; the code is never shown on the site), my details (name, mobile and photo, filled in on the
+pay page for them) and settings (offer emails, signing out on every device, deleting the account).
+An account is a keyed fingerprint of the email; the email, name and mobile are kept encrypted, the photo apart."""
 import hashlib
 import hmac
 import secrets
 import time
 from urllib.parse import urlparse
 
-from flask import Blueprint, abort, current_app, flash, has_request_context, redirect, render_template, request, \
-    session, url_for
+from flask import Blueprint, Response, abort, current_app, flash, has_request_context, redirect, render_template, \
+    request, session, url_for
 from google.cloud import firestore
 
+from brand import image_type
 from db import day_key, now
 from mailer import MailError
 from notices import deliver, message
+from phones import clean_phone, parts
 from security import check_csrf, csrf_token, too_many
-from validate import clean_email, western
+from validate import clean_email, clean_name, western
 
 account = Blueprint("account", __name__)
 CODE_TTL, STEP_TTL, RESEND_AFTER, MAX_TRIES, MAX_SENDS, DAILY_CODES = 600, 900, 60, 5, 8, 300
 SIGNED_IN_FOR = 30 * 24 * 3600
+MAX_PHOTO = 300 * 1024
 WRONG = "الرمز غير صحيح."
 EXPIRED = "انتهت صلاحية الرمز. اطلب رمزاً جديداً."
+NO_PHOTO = "الصورة يجب أن تكون PNG أو JPG أو WebP بحجم أقل من 300 كيلوبايت."
+SHOW = {"": "الكل", "paid": "مدفوعة", "pending": "بانتظار الدفع"}
 
 
 def account_id(vault, email):
@@ -36,6 +42,7 @@ class Accounts:
     def __init__(self, client, vault, cfg):
         self.db, self.vault = client, vault
         self.col = client.collection("accounts")
+        self.photos = client.collection("account_photos")
         self.codes = client.collection("account_codes")
         self.sends = client.collection("meta").document("account_code_sends")
         self._key = hmac.new(cfg.secret_key.encode(), b"trttt-account-code", hashlib.sha256).digest()
@@ -48,8 +55,11 @@ class Accounts:
         if not snap or not snap.exists:
             return None
         data = snap.to_dict() or {}
-        email = self.vault.open(data.get("enc", ""), "account:" + aid).get("email", "")
-        return {"id": aid, "email": email, "created_at": data.get("created_at")} if email else None
+        person = self.vault.open(data.get("enc", ""), "account:" + aid)
+        if not person.get("email"):
+            return None
+        return {"id": aid, "email": person["email"], "name": person.get("name", ""), "phone": person.get("phone", ""),
+                "photo": data.get("photo", 0), "epoch": data.get("epoch", 0), "created_at": data.get("created_at")}
 
     def open_for(self, email):
         """The account of this email, made on its first sign-in."""
@@ -61,6 +71,32 @@ class Accounts:
             ref.set({"enc": self.vault.seal({"email": email}, "account:" + aid), "created_at": moment,
                      "last_at": moment})
         return aid
+
+    def save_details(self, me, name, phone):
+        sealed = self.vault.seal({"email": me["email"], "name": name, "phone": phone}, "account:" + me["id"])
+        self.col.document(me["id"]).update({"enc": sealed})
+
+    def set_photo(self, aid, data):
+        """A new photo, or none (data empty). The version in its address changes so browsers show the new one."""
+        if data:
+            self.photos.document(aid).set({"img": data, "type": image_type(data)})
+        else:
+            self.photos.document(aid).delete()
+        version = int(time.time()) if data else 0
+        self.col.document(aid).update({"photo": version})
+
+    def photo(self, aid):
+        data = self.photos.document(aid).get().to_dict() or {}
+        img = bytes(data.get("img") or b"")
+        return (img, data.get("type")) if img and image_type(img) else (b"", None)
+
+    def sign_out_everywhere(self, aid):
+        self.col.document(aid).update({"epoch": firestore.Increment(1)})
+
+    def delete(self, aid):
+        self.photos.document(aid).delete()
+        self.codes.document(aid).delete()
+        self.col.document(aid).delete()
 
     def issue(self, aid, nonce):
         """A new code for this browser. Returns (code, wait): wait > 0 is the seconds before another may be sent,
@@ -109,23 +145,40 @@ def svc():
     return current_app.extensions["svc"]
 
 
+def _sign_out():
+    for key in ("cust", "ct", "ce", "ac"):
+        session.pop(key, None)
+
+
 def signed_in_customer():
     """The signed-in customer's account, or None. The pages' top bar asks for it."""
     if not has_request_context() or not session.get("cust"):
         return None
-    if time.time() - session.get("ct", 0) > SIGNED_IN_FOR:
-        session.pop("cust", None)
-        return None
     if "trttt.me" not in request.environ:
-        request.environ["trttt.me"] = svc().accounts.get(session["cust"])
+        me = None
+        if time.time() - session.get("ct", 0) <= SIGNED_IN_FOR:
+            me = svc().accounts.get(session["cust"])
+            if me and me["epoch"] != session.get("ce", 0):  # signed out on every device since
+                me = None
+        if not me:
+            _sign_out()
+        request.environ["trttt.me"] = me
     return request.environ["trttt.me"]
+
+
+def details_for_payment(me):
+    """What the pay page fills in for a signed-in customer."""
+    form = {"email": me["email"], "name": me["name"]}
+    if me["phone"]:
+        form["cc"], form["phone"] = parts(me["phone"])
+    return form
 
 
 def _safe_next(value):
     """Only a path on this site, never another site."""
     value = (value or "").strip()
-    parts = urlparse(value)
-    if not value.startswith("/") or value.startswith("//") or parts.scheme or parts.netloc or "\\" in value:
+    parts_ = urlparse(value)
+    if not value.startswith("/") or value.startswith("//") or parts_.scheme or parts_.netloc or "\\" in value:
         return ""
     return value[:300]
 
@@ -134,6 +187,8 @@ def _safe_next(value):
 def limit():
     if too_many("account", 60):
         abort(429)
+    if request.endpoint == "account.upload_photo":
+        request.max_content_length = MAX_PHOTO + 64 * 1024
     if request.method == "POST":
         check_csrf()
 
@@ -215,11 +270,15 @@ def code():
             outcome = s.accounts.check(step["a"], step["n"], typed) if typed.isdigit() and len(typed) == 6 else "wrong"
             if outcome == "ok":
                 aid = s.accounts.open_for(step["e"])
+                me = s.accounts.get(aid)
                 csrf = session.get("csrf") or csrf_token()
                 session.pop("ac", None)
                 session.permanent = True
-                session.update(cust=aid, ct=int(time.time()), csrf=csrf)
-                flash("تم تسجيل الدخول.")
+                session.update(cust=aid, ct=int(time.time()), ce=me["epoch"], csrf=csrf)
+                if not me["name"] and not step.get("next"):
+                    flash("أهلاً بك. أكمل اسمك ورقم جوالك ليُكتبا عنك في كل طلب.")
+                    return redirect(url_for(".details"), 303)
+                flash(f"أهلاً {me['name'].split()[0]}، تم تسجيل الدخول." if me["name"] else "تم تسجيل الدخول.")
                 return redirect(step.get("next") or url_for(".orders"), 303)
             error = WRONG if outcome == "wrong" else EXPIRED
     return render_template("account_code.html", error=error, email=step["e"]), 400 if error else 200
@@ -237,20 +296,24 @@ def again():
 
 @account.post("/account/logout")
 def logout():
-    for key in ("cust", "ct", "ac"):
-        session.pop(key, None)
+    _sign_out()
     flash("تم تسجيل الخروج.")
     return redirect(url_for("shop.store"), 303)
 
 
+# ---------------------------------------------------------------- the account's pages
 def orders_of(s, me):
     """The account's invoices, newest first: paid with its email, or of a customer saved with it."""
     rows = {inv["id"]: inv for inv in s.store.for_buyer(me["id"])}
-    for person in s.book.everyone():
-        if person["email"] and person["email"].lower() == me["email"]:
-            for inv in s.store.for_customer(person["id"]):
-                rows.setdefault(inv["id"], inv)
+    for person in _people(s, me):
+        for inv in s.store.for_customer(person["id"]):
+            rows.setdefault(inv["id"], inv)
     return sorted(rows.values(), key=lambda inv: inv["created_at"], reverse=True)
+
+
+def _people(s, me):
+    """The customer book's entries saved with the account's email."""
+    return [p for p in s.book.everyone() if p["email"] and p["email"].lower() == me["email"]]
 
 
 def can_resend(inv, me):
@@ -260,19 +323,33 @@ def can_resend(inv, me):
                 and (state == "sent" or (inv.get("product") and state == "failed")))
 
 
-@account.get("/account")
-def orders():
+def _me():
     me = signed_in_customer()
     if not me:
-        return redirect(url_for(".login", next=url_for(".orders")))
-    return render_template("account.html", me=me, rows=orders_of(svc(), me), can_resend=can_resend)
+        abort(redirect(url_for(".login", next=request.path)))
+    return me
+
+
+def _render(page, me, rows=None, code=200, **extra):
+    rows = orders_of(svc(), me) if rows is None else rows
+    paid = [inv for inv in rows if inv["status"] == "paid"]
+    stats = {"orders": len(rows), "paid": len(paid), "spent": sum(inv["amount"] for inv in paid),
+             "waiting": sum(1 for inv in rows if inv["status"] == "pending" and not inv["overdue"])}
+    return render_template(f"account_{page}.html", me=me, page=page, stats=stats, **extra), code
+
+
+@account.get("/account")
+def orders():
+    me = _me()
+    rows, show = orders_of(svc(), me), request.args.get("show", "")
+    show = show if show in SHOW else ""
+    listed = [inv for inv in rows if not show or (inv["status"] == show and not (show == "pending" and inv["overdue"]))]
+    return _render("orders", me, rows, listed=listed, show=show, shows=SHOW, can_resend=can_resend)
 
 
 @account.post("/account/orders/<inv_id>/resend")
 def resend(inv_id):
-    s, me = svc(), signed_in_customer()
-    if not me:
-        return redirect(url_for(".login"))
+    s, me = svc(), _me()
     inv = next((inv for inv in orders_of(s, me) if inv["id"] == inv_id), None)
     if not inv or not can_resend(inv, me):
         abort(404)
@@ -285,3 +362,91 @@ def resend(inv_id):
     else:
         flash("تعذر الإرسال الآن. حاول بعد قليل أو تواصل معنا.", "error")
     return redirect(url_for(".orders"), 303)
+
+
+@account.route("/account/details", methods=["GET", "POST"])
+def details():
+    s, me = svc(), _me()
+    form, error = None, None
+    if request.method == "POST":
+        form = request.form
+        name, error = clean_name(form.get("name", ""))
+        phone = ""
+        if not error and form.get("phone", "").strip():
+            phone, error = clean_phone(form.get("phone", ""), form.get("cc"))
+        if not error:
+            s.accounts.save_details(me, name, phone)
+            flash("تم حفظ بياناتك، وستُكتب عنك في صفحة الدفع.")
+            return redirect(url_for(".details"), 303)
+    if form is None:
+        form = {"name": me["name"]}
+        if me["phone"]:
+            form["cc"], form["phone"] = parts(me["phone"])
+    return _render("details", me, form=form, error=error, code=400 if error else 200)
+
+
+@account.post("/account/photo")
+def upload_photo():
+    s, me = svc(), _me()
+    upload = request.files.get("photo")
+    data = upload.read(MAX_PHOTO + 1) if upload and upload.filename else b""
+    if not data or len(data) > MAX_PHOTO or not image_type(data):
+        flash(NO_PHOTO, "error")
+    else:
+        s.accounts.set_photo(me["id"], data)
+        flash("تم تحديث صورتك.")
+    return redirect(url_for(".details"), 303)
+
+
+@account.post("/account/photo/remove")
+def remove_photo():
+    s, me = svc(), _me()
+    s.accounts.set_photo(me["id"], b"")
+    flash("تم حذف صورتك.")
+    return redirect(url_for(".details"), 303)
+
+
+@account.get("/account/photo")
+def photo():
+    """The signed-in customer's own photo only."""
+    me = signed_in_customer()
+    img, kind = svc().accounts.photo(me["id"]) if me else (b"", None)
+    if not img:
+        abort(404)
+    return Response(img, mimetype=kind, headers={"Cache-Control": "private, max-age=86400"})
+
+
+@account.get("/account/settings")
+def settings():
+    s, me = svc(), _me()
+    people = _people(s, me)
+    return _render("settings", me, offers=not any(p["optout"] for p in people), saved=bool(people))
+
+
+@account.post("/account/settings/offers")
+def offers():
+    s, me = svc(), _me()
+    on = request.form.get("offers") == "1"
+    for person in _people(s, me):
+        (s.book.start_mail if on else s.book.stop_mail)(person["id"])
+    flash("ستصلك عروض المتجر وأخباره على بريدك." if on else "لن تصلك عروض المتجر وأخباره. رسائل طلباتك تصلك كالمعتاد.")
+    return redirect(url_for(".settings"), 303)
+
+
+@account.post("/account/settings/everywhere")
+def everywhere():
+    s, me = svc(), _me()
+    s.accounts.sign_out_everywhere(me["id"])
+    _sign_out()
+    flash("تم تسجيل الخروج من كل الأجهزة. سجّل الدخول من جديد متى شئت.")
+    return redirect(url_for(".login"), 303)
+
+
+@account.post("/account/delete")
+def delete():
+    s, me = svc(), _me()
+    s.accounts.delete(me["id"])
+    _sign_out()
+    current_app.logger.info("account %s deleted by its owner", me["id"][:8])
+    flash("تم حذف حسابك. طلباتك السابقة باقية في سجلات المتجر كما تنص سياسة الخصوصية.")
+    return redirect(url_for("shop.store"), 303)

@@ -1,45 +1,39 @@
 {% extends "base.html" %}
+{#- The customer's account: a card with their photo, name and numbers, the three parts as tabs, then the part. -#}
 {% set brand = brand_look() %}
 {% block title %}حسابي | {{ store_name }}{% endblock %}
-{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}{% endblock %}
+{% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}
+<script src="{{ url_for('static', filename='account.js') }}" defer></script>{% endblock %}
 {% block body %}
 {% include "topbar.html" %}
 <main class="mine">
-  <header class="mine-head">
-    <h1>طلباتي</h1>
-    <form method="post" action="{{ url_for('account.logout') }}">
-      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-      <button class="plain" type="submit">تسجيل الخروج</button>
-    </form>
-    <p class="muted">مسجل الدخول بـ <bdi>{{ me.email }}</bdi></p>
-  </header>
-  {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
-  {% if rows %}
-  <ul class="orders">
-    {% for inv in rows %}
-    {% set state = 'expired' if inv.overdue else inv.status %}
-    <li class="order">
-      <h2 dir="auto">{{ inv.private.title or 'طلب' }}</h2>
-      <span class="sum">{{ inv.amount|money }} ر.س</span>
-      <p class="meta"><bdi>{{ inv.created_at|when }}</bdi> · فاتورة <bdi>{{ inv.id }}</bdi></p>
-      <span class="chip {{ state }}">{{ status_ar[state] }}</span>
-      {% if state == 'pending' or can_resend(inv, me) %}
-      <div class="do">
-        {% if state == 'pending' %}<a class="primary" href="{{ url_for('pub.invoice', token=inv.token) }}">أكمل الدفع</a>{% endif %}
-        {% if can_resend(inv, me) %}
-        <form method="post" action="{{ url_for('account.resend', inv_id=inv.id) }}">
-          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-          <button class="quiet" type="submit">أرسل الكود إلى بريدي مرة أخرى</button>
-        </form>
-        {% endif %}
+  <section class="me-card">
+    <div class="me-top">
+      <span class="avatar big">{% if me.photo %}<img src="{{ url_for('account.photo', v=me.photo) }}" alt="">{% else %}{{ (me.name or me.email)[:1]|upper }}{% endif %}</span>
+      <div class="me-who">
+        <h1 dir="auto">{{ me.name or 'أهلاً بك' }}</h1>
+        <p><bdi>{{ me.email }}</bdi></p>
+        {% if me.created_at %}<p class="since">عضو منذ <bdi>{{ me.created_at|when('%Y-%m-%d') }}</bdi></p>{% endif %}
       </div>
-      {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p class="muted empty">لا توجد طلبات على هذا البريد بعد. عند الشراء اكتب <bdi>{{ me.email }}</bdi> في صفحة الدفع لتظهر طلباتك هنا.</p>
-  {% endif %}
+      <form method="post" action="{{ url_for('account.logout') }}" class="me-out">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="plain" type="submit">تسجيل الخروج</button>
+      </form>
+    </div>
+    <dl class="me-stats">
+      <div><dt>الطلبات</dt><dd>{{ stats.orders }}</dd></div>
+      <div><dt>المدفوعة</dt><dd>{{ stats.paid }}</dd></div>
+      <div><dt>مشترياتك</dt><dd>{{ stats.spent|money }} <small>ر.س</small></dd></div>
+    </dl>
+    {% if not me.name or not me.phone %}<p class="me-hint"><a href="{{ url_for('account.details') }}">أكمل {{ 'اسمك ورقم جوالك' if not me.name and not me.phone else ('اسمك' if not me.name else 'رقم جوالك') }}</a> ليُكتب عنك في صفحة الدفع.</p>{% endif %}
+  </section>
+  <nav class="me-tabs" aria-label="أقسام حسابي">
+    <a href="{{ url_for('account.orders') }}"{% if page == 'orders' %} aria-current="page"{% endif %}>طلباتي{% if stats.waiting %} <span class="dot" aria-label="بانتظار الدفع">{{ stats.waiting }}</span>{% endif %}</a>
+    <a href="{{ url_for('account.details') }}"{% if page == 'details' %} aria-current="page"{% endif %}>بياناتي</a>
+    <a href="{{ url_for('account.settings') }}"{% if page == 'settings' %} aria-current="page"{% endif %}>الإعدادات</a>
+  </nav>
+  {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
+  {% block part %}{% endblock %}
   <p class="doc-back"><a href="{{ url_for('shop.store') }}">الرجوع إلى المتجر</a></p>
 </main>
 {% endblock %}

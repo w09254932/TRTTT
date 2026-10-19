@@ -1,0 +1,37 @@
+{% extends "account.html" %}
+{% block part %}
+<nav class="filters" aria-label="تصفية الطلبات">
+  {% for key, label in shows.items() %}<a href="{{ url_for('account.orders', show=key or None) }}"{% if key == show %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+{% if listed %}
+<ul class="orders">
+  {% for inv in listed %}
+  {% set state = 'expired' if inv.overdue else inv.status %}
+  <li class="order">
+    <h2 dir="auto">{{ inv.private.title or 'طلب' }}</h2>
+    <span class="sum">{{ inv.amount|money }} ر.س</span>
+    <p class="meta"><bdi>{{ inv.created_at|when }}</bdi> · فاتورة <bdi>{{ inv.id }}</bdi></p>
+    <span class="chip {{ state }}">{{ status_ar[state] }}</span>
+    {% if state == 'pending' or can_resend(inv, me) %}
+    <div class="do">
+      {% if state == 'pending' %}<a class="primary" href="{{ url_for('pub.invoice', token=inv.token) }}">أكمل الدفع</a>{% endif %}
+      {% if can_resend(inv, me) %}
+      <form method="post" action="{{ url_for('account.resend', inv_id=inv.id) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="quiet" type="submit">أرسل الكود إلى بريدي مرة أخرى</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% elif show %}
+<p class="muted empty">لا توجد طلبات بهذه الحالة.</p>
+{% else %}
+<div class="me-empty">
+  <p class="muted">لا توجد طلبات على هذا البريد بعد. عند الشراء اكتب <bdi>{{ me.email }}</bdi> في صفحة الدفع لتظهر طلباتك هنا.</p>
+  <a class="primary" href="{{ url_for('shop.store') }}">تسوق الآن</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -340,6 +340,57 @@ progress::-moz-progress-bar { background: var(--accent); border-radius: 99px; }
 .order .do form { margin: 0; }
 .order .do .quiet, .order .do .primary { min-height: 40px; padding: .35rem 1rem; font-size: .88rem; }
 .mine .empty { text-align: center; }
+
+/* the account: a card, three tabs, then the part */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.avatar {
+  display: grid; place-items: center; flex: none; width: 44px; height: 44px; overflow: hidden; border-radius: 50%;
+  color: var(--on-accent); background: var(--accent); font: 700 1.1rem var(--display);
+}
+.avatar.big { width: 72px; height: 72px; font-size: 1.8rem; box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px color-mix(in srgb, var(--accent) 45%, transparent); }
+.avatar img, .who .face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.who .face { overflow: hidden; }
+.who-name { max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.me-card {
+  padding: 1.25rem; margin-bottom: 1rem; border: 1px solid var(--line); border-radius: var(--radius);
+  background: radial-gradient(120% 140% at 100% 0, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
+              linear-gradient(180deg, var(--panel-2), var(--panel));
+}
+.me-top { display: flex; align-items: center; gap: 1rem; }
+.me-who { flex: 1; min-width: 0; }
+.me-out { flex: none; align-self: flex-start; margin: 0; }
+.me-out .plain { padding: .2rem; font-size: .82rem; }
+.me-who h1 { margin: 0 0 .1rem; font-size: 1.35rem; overflow-wrap: anywhere; }
+.me-who p { margin: 0; color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+.me-who .since { font-size: .78rem; }
+.me-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 1.1rem 0 0; }
+.me-stats div { padding: .6rem .5rem; text-align: center; background: var(--field); border: 1px solid var(--line); border-radius: 12px; }
+.me-stats dt { font-size: .74rem; color: var(--muted); }
+.me-stats dd { margin: 0; font: 700 1.15rem var(--display); color: var(--accent-text); }
+.me-stats small { font: 600 .7rem var(--body); color: var(--muted); }
+.me-hint { margin: .9rem 0 0; font-size: .85rem; color: var(--muted); }
+.me-hint a { font-weight: 700; }
+.me-tabs { display: flex; gap: .3rem; margin: 0 0 1rem; padding: .3rem; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.me-tabs a {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: .35rem; padding: .5rem .4rem; border-radius: 10px;
+  color: var(--muted); font-weight: 600; font-size: .92rem; text-decoration: none;
+}
+.me-tabs a:hover { color: var(--text); }
+.me-tabs a[aria-current] { color: var(--on-accent); background: var(--accent); }
+.me-tabs .dot { min-width: 1.3em; padding: 0 .35em; border-radius: 99px; font-size: .72rem; line-height: 1.5; color: var(--on-accent); background: var(--bad); }
+.me-tabs a[aria-current] .dot { color: var(--accent); background: var(--on-accent); }
+.me-empty { padding: 1.75rem 1rem; text-align: center; border: 1px dashed var(--line); border-radius: 16px; }
+.me-empty p { margin-bottom: 1rem; }
+.mine .sheet h2 { font-size: 1.05rem; }
+.mine .sheet form p { margin: 0 0 .9rem; }
+.photo-row { display: flex; align-items: center; gap: 1.1rem; }
+.photo-do { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; min-width: 0; }
+.photo-do form { margin: 0; display: flex; gap: .5rem; }
+.photo-do .pick { min-height: 42px; padding: .4rem 1.1rem; margin: 0; font-size: .92rem; cursor: pointer; }
+.photo-do .hint { flex-basis: 100%; margin: 0; }
+.photo-do [hidden] { display: none; }
+.photo-do .pick, .photo-do .primary { white-space: nowrap; }
+.setting p { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .shop-head { text-align: center; margin-bottom: 1.6rem; }
 .shop-head h1 { font-size: clamp(2rem, 10vw, 2.5rem); line-height: 1.25; margin-bottom: .5rem; text-wrap: balance; }
 .shop-head p { max-width: 32ch; margin: 0 auto; color: var(--muted); text-wrap: balance; }

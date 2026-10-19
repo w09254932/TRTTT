@@ -4,7 +4,7 @@ import re
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
-from accounts import account_id, signed_in_customer
+from accounts import account_id, details_for_payment, signed_in_customer
 
 import legacy_flow
 from declines import specific
@@ -58,9 +58,9 @@ def _about(inv):
 def _page(inv, form=None, error=None, code=200):
     # Whatever the owner did not fill in is asked on every attempt, so a mistake can be corrected.
     need = [field for field in CLEANERS if not inv["fixed"].get(field)]
-    if form is None and "email" in need:  # a signed-in customer finds their email already written
+    if form is None and need:  # a signed-in customer finds their details already written
         me = signed_in_customer()
-        form = {"email": me["email"]} if me else None
+        form = details_for_payment(me) if me else None
     return render_template("pay.html", inv=inv, need=need, form=form or {}, error=error, brand=svc().brand.get(),
                            mailing=svc().mailer.ready, store_open=_store_open(inv), about=_about(inv)), code
 
