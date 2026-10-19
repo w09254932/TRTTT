@@ -5,7 +5,7 @@ import time
 from flask import current_app, render_template
 
 from db import KSA, now
-from mailer import MailError, one_line
+from mailer import MailError, mask, one_line
 
 RETRY_WAITS = (5, 20)  # seconds between automatic attempts while the mail server cannot be reached
 SENT_TEXT = {"sent": "أُرسل إلى بريد العميل", "failed": "تعذر الإرسال. افتح الفاتورة وأعد الإرسال"}
@@ -113,12 +113,18 @@ def deliver(s, inv_id, again=False, waits=()):
             error = "address" if not to else "failed"
         else:
             title = inv["private"].get("title") or "طلبك"
-            mail = message(s, f"طلبك من {s.cfg.store_name}: {title}", "تم الدفع، وهذا طلبك",
-                           f"شكراً لك. استلمنا دفعتك لفاتورة رقم {inv['id']}.",
-                           rows=[("الطلب", title), ("المبلغ", f"{inv['amount']:,.2f} ر.س")], box=goods,
-                           box_label="طلبك", logo=True,
-                           outro=f"احتفظ بهذه الرسالة. إن واجهت مشكلة في طلبك فتواصل مع {s.cfg.store_name}.")
+            gift = s.store.gift(inv)
+            if gift:
+                mail = gift_message(s, inv, title, goods, gift)
+            else:
+                mail = message(s, f"طلبك من {s.cfg.store_name}: {title}", "تم الدفع، وهذا طلبك",
+                               f"شكراً لك. استلمنا دفعتك لفاتورة رقم {inv['id']}.",
+                               rows=[("الطلب", title), ("المبلغ", f"{inv['amount']:,.2f} ر.س")], box=goods,
+                               box_label="طلبك", logo=True,
+                               outro=f"احتفظ بهذه الرسالة. إن واجهت مشكلة في طلبك فتواصل مع {s.cfg.store_name}.")
             error = _send(s, to, mail, waits)
+            if gift and not error and tries == 1:
+                gift_sent(s, inv, title, to)
     finally:  # whatever happens, the invoice never stays marked as "being sent"
         s.store.finish_delivery(inv_id, tries, "failed" if error else "sent", error)
     if error:
@@ -126,6 +132,28 @@ def deliver(s, inv_id, again=False, waits=()):
         return "failed", error
     current_app.logger.info("order emailed for %s", inv_id)
     return "sent", ""
+
+
+def gift_message(s, inv, title, goods, gift):
+    """The friend's email: who it is from, their message, and the codes. The price is not shown."""
+    sender = gift.get("from") or "صديقك"
+    return message(s, f"هدية لك من {sender}: {title}", f"وصلتك هدية من {sender}",
+                   f"اختار لك {sender} هدية من {s.cfg.store_name}، وهذه أكوادها.",
+                   body=[f"«{gift['note']}»"] if gift.get("note") else (), rows=[("الهدية", title)], box=goods,
+                   box_label="هديتك", logo=True,
+                   outro=f"احتفظ بهذه الرسالة. إن واجهت مشكلة في الكود فتواصل مع {s.cfg.store_name} واذكر رقم {inv['id']}.")
+
+
+def gift_sent(s, inv, title, to):
+    """Tells the buyer the gift arrived, without its codes."""
+    buyer = inv["private"].get("email")
+    if not buyer or buyer == to:
+        return
+    mail = message(s, f"وصلت هديتك: {title}", "وصلت هديتك",
+                   f"أرسلنا هديتك إلى {mask(to)}. الأكواد عند صاحب الهدية وحده، ولا تظهر لك حفاظاً على خصوصيتها.",
+                   rows=[("الهدية", title), ("المبلغ", f"{inv['amount']:,.2f} ر.س"), ("رقم الفاتورة", inv["id"])],
+                   logo=True)
+    _send(s, buyer, mail)
 
 
 def owner_notice(s, inv_id, delivered=None):

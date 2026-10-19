@@ -10,7 +10,7 @@
   <li class="order">
     <h2 dir="auto">{{ inv.private.title or 'طلب' }}</h2>
     <span class="sum">{{ inv.amount|money }} ر.س</span>
-    <p class="meta"><bdi>{{ inv.created_at|when }}</bdi> · فاتورة <bdi>{{ inv.id }}</bdi></p>
+    <p class="meta"><bdi>{{ inv.created_at|when }}</bdi> · فاتورة <bdi>{{ inv.id }}</bdi>{% if inv.gift %} · <span class="gift-tag">هدية إلى <bdi>{{ inv.deliver_email|mask }}</bdi></span>{% endif %}</p>
     <span class="chip {{ state }}">{{ status_ar[state] }}</span>
     {% if state == 'pending' or can_resend(inv, me) %}
     <div class="do">
@@ -18,7 +18,7 @@
       {% if can_resend(inv, me) %}
       <form method="post" action="{{ url_for('account.resend', inv_id=inv.id) }}">
         <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-        <button class="quiet" type="submit">أرسل الكود إلى بريدي مرة أخرى</button>
+        <button class="quiet" type="submit">{{ 'أرسل الهدية لصديقك مرة أخرى' if inv.gift else 'أرسل الكود إلى بريدي مرة أخرى' }}</button>
       </form>
       {% endif %}
     </div>

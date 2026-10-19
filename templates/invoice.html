@@ -20,6 +20,7 @@
     {% elif inv.product %}<div><dt>من المتجر</dt><dd>{% if product %}<a href="{{ url_for('shop_admin.product', pid=inv.product) }}">{{ product.name }}</a>{% else %}منتج محذوف{% endif %}</dd></div>{% endif %}
     <div><dt>الجوال</dt><dd>{% if inv.private.phone %}<bdi>{{ inv.private.phone|phone }}</bdi> <small class="muted">{{ inv.private.phone|phone_country }}</small>{% else %}يكتبه العميل{% endif %}</dd></div>
     <div><dt>البريد</dt><dd><bdi>{{ inv.private.email or 'يكتبه العميل' }}</bdi></dd></div>
+    {% if inv.gift %}<div><dt>هدية إلى</dt><dd><bdi>{{ inv.deliver_email }}</bdi></dd></div>{% endif %}
     <div><dt>أُنشئت</dt><dd><bdi>{{ inv.created_at|when }}</bdi></dd></div>
     <div><dt>{{ 'دُفعت' if inv.paid_at else 'تنتهي' }}</dt><dd><bdi>{{ (inv.paid_at or inv.expires_at)|when }}</bdi></dd></div>
     <div><dt>المشاهدات</dt><dd>{{ inv.views }}</dd></div>

@@ -15,7 +15,7 @@ from google.cloud import firestore
 
 from brand import image_type
 from db import day_key, now
-from mailer import MailError
+from mailer import MailError, mask
 from notices import deliver, message
 from phones import clean_phone, parts
 from security import check_csrf, csrf_token, too_many
@@ -321,7 +321,8 @@ def _people(s, me):
 def can_resend(inv, me):
     """The code of a paid order goes again only to the email it was sent to, and that email is the account's."""
     state = (inv.get("delivery") or {}).get("state")
-    return bool(inv["status"] == "paid" and inv["has_goods"] and inv["deliver_email"].lower() == me["email"]
+    to_them = inv["deliver_email"].lower() == me["email"] or (inv.get("gift") and inv.get("buyer") == me["id"])
+    return bool(inv["status"] == "paid" and inv["has_goods"] and to_them
                 and (state == "sent" or (inv.get("product") and state == "failed")))
 
 
@@ -359,7 +360,9 @@ def resend(inv_id):
         flash("طلبت الإرسال كثيراً. انتظر دقائق ثم حاول مرة أخرى.", "error")
         return redirect(url_for(".orders"), 303)
     state, _ = deliver(s, inv_id, again=True)
-    if state == "sent":
+    if state == "sent" and inv.get("gift"):
+        flash(f"أرسلنا الهدية مرة أخرى إلى بريد صديقك {mask(inv['deliver_email'])}.")
+    elif state == "sent":
         flash(f"أرسلنا طلبك مرة أخرى إلى {me['email']}. إن لم تجده فتفقّد البريد غير المرغوب فيه.")
     else:
         flash("تعذر الإرسال الآن. حاول بعد قليل أو تواصل معنا.", "error")

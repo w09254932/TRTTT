@@ -1,5 +1,7 @@
 {% if inv.has_goods %}{% set state = (inv.delivery or {}).state %}{% set late = (inv.paid_from or 'pending') != 'pending' and state != 'sent' and not inv.product %}
 {% if not mailing or state == 'failed' or not inv.deliver_email or late %}<p class="note">سيتواصل معك {{ store_name }} لتسليم طلبك.</p>
+{% elif inv.gift and state == 'sent' %}<p class="note">أرسلنا الهدية إلى بريد صديقك <bdi>{{ inv.deliver_email|mask }}</bdi>.</p>
+{% elif inv.gift %}<p class="note">تصل الهدية إلى بريد صديقك <bdi>{{ inv.deliver_email|mask }}</bdi> خلال لحظات.</p>
 {% elif state == 'sent' %}<p class="note">أرسلنا طلبك إلى بريدك <bdi>{{ inv.deliver_email|mask }}</bdi>. إن لم تجده فتفقّد البريد غير المرغوب فيه.</p>
 {% else %}<p class="note">يصل طلبك إلى بريدك <bdi>{{ inv.deliver_email|mask }}</bdi> خلال لحظات.</p>
 {% endif %}{% elif inv.product %}<p class="note">سيتواصل معك {{ store_name }} لتسليم طلبك.</p>

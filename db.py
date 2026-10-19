@@ -252,6 +252,16 @@ class Store:
         """The owner corrects where the order goes (kept encrypted, like everything about the customer)."""
         self.invoices.document(inv_id).update({"deliver_to": self.vault.seal({"email": email}, "deliver_to:" + inv_id)})
 
+    def set_gift(self, inv_id, email, sender, note):
+        """The order goes to a friend: the codes are sent to their email only. Kept encrypted."""
+        self.invoices.document(inv_id).update({
+            "deliver_to": self.vault.seal({"email": email}, "deliver_to:" + inv_id),
+            "gift": self.vault.seal({"from": sender, "note": note}, "gift:" + inv_id)})
+
+    def gift(self, inv):
+        """{from, note} of a gift order, or {}."""
+        return self.vault.open(inv["gift"], "gift:" + inv["id"]) if inv.get("gift") else {}
+
     def set_customer(self, inv_id, customer):
         self.invoices.document(inv_id).update({"customer": customer})
 

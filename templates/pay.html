@@ -18,7 +18,8 @@
   {% set emailed = (inv.has_goods or inv.product) and mailing %}
   {% if error %}<p class="alert" role="alert">{{ error }}</p>
   {% elif inv.last_error %}<p class="alert" role="alert">آخر محاولة دفع لم تتم. {{ inv.last_error|why }}</p>{% endif %}
-  {% if emailed and 'email' not in need %}<p class="note">بعد الدفع يصل طلبك إلى بريدك{% if inv.fixed.email %} <bdi>{{ inv.fixed.email|mask }}</bdi>{% endif %} فوراً.</p>{% endif %}
+  {% if inv.gift %}<p class="note gift-note">هدية: بعد الدفع تصل الأكواد إلى بريد صديقك <bdi>{{ inv.deliver_email|mask }}</bdi> مباشرة، ولا تظهر لك.</p>
+  {% elif emailed and 'email' not in need %}<p class="note">بعد الدفع يصل طلبك إلى بريدك{% if inv.fixed.email %} <bdi>{{ inv.fixed.email|mask }}</bdi>{% endif %} فوراً.</p>{% endif %}
   <form method="post" action="{{ url_for('pub.pay', token=inv.token) }}">
     {% if 'name' in need %}<label for="name">الاسم</label>
     <input id="name" name="name" autocomplete="name" maxlength="80" required value="{{ form.name }}">{% endif %}

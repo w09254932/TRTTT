@@ -435,6 +435,14 @@ input[readonly] { cursor: default; }
 .total-box > p:first-child small { font: 600 .8rem var(--body); color: var(--muted); }
 .total-box .muted { font-size: .82rem; overflow-wrap: anywhere; }
 .total-box .primary, .total-box form { width: 100%; margin: 0; }
+.gift { margin: .25rem 0 .9rem; padding: .2rem .9rem .3rem; background: var(--field); border: 1px solid var(--line); border-radius: 12px; }
+.gift summary { display: flex; align-items: center; gap: .5rem; padding: .55rem 0; font-weight: 700; cursor: pointer; color: var(--accent-text); }
+.gift summary svg { flex: none; width: 19px; height: 19px; }
+.gift[open] summary { margin-bottom: .4rem; }
+.gift input:not([type=checkbox]) { margin-bottom: .8rem; }
+.gift .check { margin-bottom: .8rem; }
+.gift .hint { margin: 0 0 .5rem; font-size: .78rem; }
+.gift-tag { color: var(--accent-text); }
 .peek-buy { display: grid; gap: .5rem; }
 .peek-buy form { margin: 0; }
 .peek-buy button { width: 100%; }

@@ -6,6 +6,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from accounts import signed_in_customer
 from products import PID_RE
 from security import check_csrf, too_many
+from validate import clean_email, clean_text
 
 cart = Blueprint("cart", __name__)
 MAX_QTY = 10        # of one product in one order
@@ -100,11 +101,11 @@ def set_qty(pid):
 
 
 @cart.get("/cart")
-def view():
+def view(form=None, code=200):
     rows = _lines()
     total = round(sum(p["price"] * q for p, q in rows), 2)
     return render_template("cart.html", rows=rows, total=total, me=signed_in_customer(), brand=svc().brand.get(),
-                           max_qty=MAX_QTY)
+                           max_qty=MAX_QTY, form=form or {}), code
 
 
 @cart.post("/cart/checkout")
@@ -117,6 +118,10 @@ def checkout():
     if not me["name"] or not me["phone"]:
         flash("أكمل اسمك ورقم جوالك ليُكتبا في طلبك، ثم ارجع إلى السلة.", "error")
         return redirect(url_for("account.details", next=url_for(".view")), 303)
+    gift, error = _gift(me)
+    if error:
+        flash(error, "error")
+        return view(request.form, 400)
     if too_many("order", 10, per=600):
         abort(429)
     rows = _lines()
@@ -124,8 +129,22 @@ def checkout():
     if error:
         flash(error, "error")
         return redirect(url_for(".view"), 303)
+    if gift:
+        svc().store.set_gift(svc().store.by_token(token)["id"], gift["email"], me["name"], gift["note"])
     _save({})
     return redirect(url_for("pub.invoice", token=token), 303)
+
+
+def _gift(me):
+    """({email, note}, None) when the order is a gift, (None, None) when not, or (None, why)."""
+    if not request.form.get("gift_email", "").strip():
+        return None, None
+    email, error = clean_email(request.form.get("gift_email", ""))
+    if error:
+        return None, "اكتب بريد صديقك صحيحاً لتصله الهدية."
+    if email == me["email"]:
+        return None, "هذا بريدك أنت. للهدية اكتب بريد صديقك، أو أكمل الطلب دون هدية."
+    return {"email": email, "note": clean_text(request.form.get("gift_note", ""), 200)}, None
 
 
 @cart.post("/order/<pid>")
