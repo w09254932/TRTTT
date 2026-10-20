@@ -123,6 +123,14 @@ def done(token):
         outcome = legacy_flow.poll(inv)
         if outcome in legacy_flow.PAID or outcome == "failed":
             inv = svc().store.by_token(token)
+    if inv["status"] == "paid" and inv.get("product") and not inv["has_goods"]:
+        # Paid a moment ago and the gateway's call is still attaching the codes: attach them now
+        # (once only, whoever comes first), so the page tells the truth: the order is on its way by email.
+        try:
+            if svc().shop.assign(inv["id"]) in ("assigned", "partial", "already"):
+                inv = svc().store.by_token(token)
+        except Exception as exc:
+            current_app.logger.error("codes not attached from the result page for %s: %s", inv["id"], type(exc).__name__)
     tries = request.args.get("n", "0")
     tries = int(tries) if tries.isdigit() and len(tries) < 3 else 0
     reason = inv.get("last_error")
