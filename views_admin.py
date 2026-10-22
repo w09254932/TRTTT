@@ -108,6 +108,7 @@ def _dashboard(form=None, error=None, code=200):
         form=form or {}, error=error,
         net=stats["paid_amount"] - stats["refunded_amount"], valid_days=VALID_DAYS, mailing=s.mailer.ready,
         callback=legacy_flow.callback_url(s.cfg) if s.cfg.legacy else s.cfg.base_url + "/webhook/edfapay",
+        legacy=s.cfg.legacy, gateway_env=s.cfg.edfa_env,
         people=people, chosen=chosen,
         rate=round(100 * (stats["paid"] + stats["refunded"]) / stats["links"]) if stats["links"] else 0,
         peak=max([d["created"] for d in days] + [d["paid"] for d in days] + [1]),

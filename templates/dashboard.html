@@ -95,7 +95,13 @@
 </section>
 <section class="sheet">
   <h2>ربط EdfaPay</h2>
+  {% if legacy %}
+  <p class="muted">النظام المستخدم: القديم (معرّف التاجر وكلمة المرور).</p>
   <p class="muted">انسخ هذا الرابط إلى خانة لينك الكول باك في إعدادات التكامل بلوحة EdfaPay. يتغير الرابط إذا غيّرت SECRET_KEY.</p>
+  {% else %}
+  <p class="muted">النظام المستخدم: الجديد (مفتاح API){% if gateway_env == 'production' %}، حساب حقيقي{% else %}، <b>وضع التجربة ({{ gateway_env }})</b>{% endif %}.</p>
+  <p class="muted">في لوحة EdfaPay: الإعدادات ← Webhook ← إضافة. الصق هذا الرابط، واختر فئة المعاملات (Transactions) وكل أحداثها، واكتب في Webhook Secret نفس قيمة EDFAPAY_WEBHOOK_SECRET.</p>
+  {% endif %}
   <div class="share">
     <input id="link" value="{{ callback }}" readonly dir="ltr">
     <button class="quiet" type="button" data-copy="{{ callback }}">نسخ الرابط</button>

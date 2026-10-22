@@ -133,6 +133,10 @@ def done(token):
             current_app.logger.error("codes not attached from the result page for %s: %s", inv["id"], type(exc).__name__)
     tries = request.args.get("n", "0")
     tries = int(tries) if tries.isdigit() and len(tries) < 3 else 0
+    if not svc().gateway.legacy and "n" not in request.args:
+        # What EdfaPay adds to the return link is not documented: its field names (never values) go to the log.
+        current_app.logger.info("back from edfapay for %s with fields: %s", inv["id"],
+                                ", ".join(sorted(k[:30] for k in request.args)[:20]) or "-")
     reason = inv.get("last_error")
     # A bare "declined" is usually followed within seconds by the gateway's notice with the exact reason.
     settling = bool(reason) and not specific(reason) and tries < 2
@@ -153,12 +157,14 @@ def webhook():
         return {"ok": False}, 401
     try:
         data = json.loads(raw)
+        if "orderId" not in data and isinstance(data.get("data"), dict):
+            data = data["data"]          # the same notice wrapped in {"data": ...}
         details = data.get("pgDetails")
         event = {
             "order_id": str(data.get("orderId") or "")[:64],
             "txn": str(data.get("transactionId") or "")[:64],
-            "status": str(data.get("status") or "")[:20],
-            "type": str(data.get("type") or "")[:20],
+            "status": str(data.get("status") or "").strip().capitalize()[:20],     # APPROVED -> Approved
+            "type": str(data.get("type") or "").strip().capitalize()[:20],
             "amount": round(float(data.get("amount") or 0), 2),
             "reason": str((details.get("reason") if isinstance(details, dict) else "") or "")[:200],
             "scheme": str(data.get("cardScheme") or "")[:30],
