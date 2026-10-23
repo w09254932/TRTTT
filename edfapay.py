@@ -1,8 +1,11 @@
 """EdfaPay hosted checkout client for accounts with an API key (docs.edfapay.com and the live Swagger at
 app-api.edfapay.com/api-docs). The two disagree on some paths, so each call tries the Swagger path first
 and the documented one when the first is not found."""
+import base64
+import binascii
 import hashlib
 import hmac
+import re
 from urllib.parse import quote, urlparse
 
 import requests
@@ -81,9 +84,48 @@ class EdfaPay:
         content = data.get("content") or []
         return content[0] if content and isinstance(content[0], dict) else None
 
+    def _digest(self, raw_body, algo=hashlib.sha256):
+        return hmac.new(self.webhook_secret, raw_body, algo).digest()
+
     def verify(self, raw_body, signature):
-        """X-EdfaPay-Signature must be the hex HMAC-SHA256 of the raw body."""
-        expected = hmac.new(self.webhook_secret, raw_body, hashlib.sha256).hexdigest()
-        given = (signature or "").strip().lower()
-        given = given[7:] if given.startswith("sha256=") else given
-        return hmac.compare_digest(expected.encode(), given.encode())
+        """X-EdfaPay-Signature must be the HMAC-SHA256 of the raw body with the webhook secret: hex as documented
+        (either letter case), or the same digest in base64. Both need the secret."""
+        given = (signature or "").strip()
+        given = given[7:] if given.lower().startswith("sha256=") else given
+        if not given or not self.webhook_secret:
+            return False
+        digest = self._digest(raw_body)
+        if hmac.compare_digest(digest.hex().encode(), given.lower().encode()):
+            return True
+        try:
+            sent = base64.b64decode(given, validate=True)
+        except (binascii.Error, ValueError):
+            return False
+        return hmac.compare_digest(digest, sent)
+
+    def diagnose(self, raw_body, headers, signature):
+        """Why a notice was refused, for the log only: sizes, shapes and which signing would have matched.
+        Never the secret, the signature or the body themselves."""
+        sig = (signature or "").strip()
+        sig = sig[7:] if sig.lower().startswith("sha256=") else sig
+        shape = ("none" if not sig else "hex" if re.fullmatch(r"[0-9a-fA-F]+", sig)
+                 else "base64" if re.fullmatch(r"[A-Za-z0-9+/=_-]+", sig) else "other")
+        tries = {
+            "hmac256-raw": self._digest(raw_body),
+            "hmac256-trimmed-body": self._digest(raw_body.strip()),
+            "hmac512-raw": self._digest(raw_body, hashlib.sha512),
+            "hmac1-raw": self._digest(raw_body, hashlib.sha1),
+            "sha256-body+secret": hashlib.sha256(raw_body + self.webhook_secret).digest(),
+            "sha256-secret+body": hashlib.sha256(self.webhook_secret + raw_body).digest(),
+        }
+        matches = []
+        for name, digest in tries.items():
+            forms = (digest.hex(), base64.b64encode(digest).decode(), base64.urlsafe_b64encode(digest).decode())
+            if sig and any(hmac.compare_digest(f.encode(), (sig.lower() if i == 0 else sig).encode())
+                           for i, f in enumerate(forms)):
+                matches.append(name)
+        named = sorted(h for h in headers.keys() if re.search(r"sign|hash|hmac|auth|token|secret", h, re.I))
+        return (f"body {len(raw_body)} bytes ({headers.get('Content-Type', '-')}), signature {shape} "
+                f"length {len(sig)}, headers like a signature: {', '.join(named) or '-'}, "
+                f"secret length {len(self.webhook_secret)} id {hashlib.sha256(self.webhook_secret).hexdigest()[:8]}, "
+                f"would match: {', '.join(matches) or 'nothing'}")

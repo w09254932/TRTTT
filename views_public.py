@@ -153,7 +153,8 @@ def webhook():
         abort(404)
     raw = request.get_data()
     if not svc().gateway.verify(raw, request.headers.get("X-EdfaPay-Signature", "")):
-        current_app.logger.warning("webhook rejected: bad signature")
+        current_app.logger.warning("webhook rejected: bad signature | %s", svc().gateway.diagnose(
+            raw, request.headers, request.headers.get("X-EdfaPay-Signature", "")))
         return {"ok": False}, 401
     try:
         data = json.loads(raw)
