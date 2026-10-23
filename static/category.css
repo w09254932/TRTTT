@@ -16,3 +16,14 @@
 }
 .cat-back svg { width: 18px; height: 18px; }
 .cat-back:hover { border-color: var(--accent); color: var(--accent-text); }
+
+/* Opening a category: the page opens like a door from the middle over the store (a cross-document view transition,
+   chosen by the owner). Only the store's pages opt in, and static/shop.js keeps it for taps that open a category;
+   browsers without view transitions, or with reduced motion asked for, simply open the page. */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: none; }
+::view-transition-new(root) { animation: door-open .75s cubic-bezier(.65, 0, .35, 1) both; }
+@keyframes door-open { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
