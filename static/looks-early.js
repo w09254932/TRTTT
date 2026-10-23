@@ -10,7 +10,7 @@
     window.sessionStorage.removeItem('trttt-look-go');
   } catch (e) { go = null; }
   if (go === null || typeof go !== 'object' || ['curtain', 'zoom', 'expand'].indexOf(go.look) < 0) { return; }
-  var cat = /[?&]cat=([^&#]+)/.exec(window.location.search);
+  var cat = /^\/c\/([^\/?#]+)/.exec(window.location.pathname);
   if (cat === null || decodeURIComponent(cat[1]) !== go.cat || Date.now() - (go.at || 0) > 8000) { return; }
   root.classList.add('arrive-' + go.look);
   window.trtttArrive = go;

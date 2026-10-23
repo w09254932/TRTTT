@@ -24,7 +24,7 @@
         <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
         {% if p.available %}
         <form method="post" action="{{ url_for('cart.add', pid=p.id) }}">
-          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="/">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="{{ request.path }}">
           <button class="primary" type="submit" aria-label="أضف {{ p.name }} إلى السلة">أضف للسلة</button>
         </form>
         {% elif p.id in asked %}

@@ -380,32 +380,47 @@ def limit():
         abort(429)
 
 
+# Products in no category (or in one that is gone) sit together under this tile once the store has categories.
+OTHER = {"id": "other", "name": "منتجات أخرى", "image": None, "image_type": None, "version": "", "order": 9999}
+
+
 @shop.get("/")
-def store():
-    """The store: everything on sale, narrowed by a category, by instant or by hand, and by a search."""
+@shop.get("/c/<cat>")
+def store(cat=""):
+    """The store: its categories, each opening on a page of its own (/c/<id>), narrowed further by instant or by
+    hand and by a search. A store with no categories lists its products on the front page."""
     from accounts import signed_in_customer
     from restock import waiting_for
     from looks import LOOKS, current
     owner = signed_in(svc().cfg)
     look, preview = current(owner)
+    if not cat and request.args.get("cat"):          # links from before categories had pages of their own
+        args = {k: v for k, v in request.args.items() if k != "cat"}
+        return redirect(url_for(".store", cat=request.args["cat"], **args), 301)
     everything = svc().shop.catalog()
+    known = {c["id"] for c in svc().categories.all()}
+
+    def home(p):
+        return p["category"] if p["category"] in known else OTHER["id"]
+
     counts = {}
     for p in everything:
-        if p["category"]:
-            counts[p["category"]] = counts.get(p["category"], 0) + 1
+        counts[home(p)] = counts.get(home(p), 0) + 1
     cats = [c for c in svc().categories.all() if counts.get(c["id"])]
+    if cats and counts.get(OTHER["id"]):
+        cats.append(OTHER)
     both = len({p["manual"] for p in everything}) > 1
-    cat = request.args.get("cat", "")
-    cat = cat if any(c["id"] == cat for c in cats) else ""
+    if cat and not any(c["id"] == cat for c in cats):   # a category that is gone, or empty now
+        return redirect(url_for(".store"), 302)
     kind = request.args.get("kind", "")
     kind = kind if both and kind in ("instant", "manual") else ""
     q = clean_text(request.args.get("q", ""), 60)
     shown = [p for p in everything
-             if (not cat or p["category"] == cat) and (not kind or p["manual"] == (kind == "manual"))
+             if (not cat or home(p) == cat) and (not kind or p["manual"] == (kind == "manual"))
              and (not q or q.lower() in f"{p['name']} {p['description']}".lower())]
-    # With categories, the store opens on them: a product inside a category waits until its category is chosen
-    # (or a search finds it); products without a category show as before.
-    shelved = {p["id"] for p in shown if p["category"] in counts and cats} if cats and not cat and not q else set()
+    # With categories, the front page shows only them: every product waits on its category's page. They stay in
+    # the page, hidden, so typing in the search finds them at once.
+    shelved = {p["id"] for p in shown} if cats and not cat and not q else set()
     me = signed_in_customer()
     asked = {p["id"] for p in shown if not p["available"] and waiting_for(p["id"], me)} if me else set()
     return render_template("shop.html", products=shown, brand=svc().brand.get(), owner=owner,

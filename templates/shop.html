@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ store_name }}{% endblock %}
+{% block title %}{% if chosen %}{{ chosen.name }} | {% endif %}{{ store_name }}{% endblock %}
 {% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}
 <script src="{{ url_for('static', filename='shop.js') }}" defer></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='looks.css') }}">
@@ -51,7 +51,7 @@
           <button class="primary" type="submit">اشترِ الآن</button>
         </form>
         <form method="post" action="{{ url_for('cart.add', pid=p.id) }}">
-          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="/">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="{{ request.path }}">
           <button class="quiet" type="submit">أضف إلى السلة</button>
         </form>
       </div>

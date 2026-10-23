@@ -1,8 +1,7 @@
 {#- Above the products: search as you type (static/shop.js; without script the form searches on the server),
     instant or by-hand when the store has both, and the categories with their pictures (shop_cats.html; the
     «expand» look shows them under the open category instead). preview keeps a look the owner is trying. -#}
-<form class="finder" method="get" action="{{ url_for('shop.store') }}" role="search">
-  {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
+<form class="finder" method="get" action="{{ url_for('shop.store', cat=cat or None) }}" role="search">
   {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
   {% if preview %}<input type="hidden" name="look" value="{{ preview }}">{% endif %}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>

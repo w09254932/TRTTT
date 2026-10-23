@@ -6,7 +6,7 @@
 <section class="sheet">
   <p class="muted"><a href="{{ url_for('shop_admin.products') }}">المتجر</a></p>
   <h1>التصنيفات</h1>
-  <p class="muted">تظهر التصنيفات بصورها أعلى المتجر، ويضغط العميل على تصنيف فيرى منتجاته. اختر تصنيف كل منتج من صفحة المنتج، والمنتج بلا تصنيف يظهر في «الكل» فقط.</p>
+  <p class="muted">تظهر التصنيفات بصورها أعلى المتجر، ويضغط العميل على تصنيف فيرى منتجاته. اختر تصنيف كل منتج من صفحة المنتج، والمنتج بلا تصنيف يظهر تحت «منتجات أخرى».</p>
   {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
   <form method="post" action="{{ url_for('cats_admin.create') }}" enctype="multipart/form-data" class="grid">
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">

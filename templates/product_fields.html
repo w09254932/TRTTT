@@ -11,7 +11,7 @@
     <option value="">بدون تصنيف</option>
     {% for c in categories %}<option value="{{ c.id }}"{% if (f.category or '') == c.id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
   </select>
-  <span class="hint">{% if categories %}يظهر المنتج داخل هذا التصنيف في المتجر، وفي «الكل» دائماً.{% else %}لا توجد تصنيفات بعد. أضفها من <a href="{{ url_for('cats_admin.categories') }}">التصنيفات</a>.{% endif %}</span></p>
+  <span class="hint">{% if categories %}يظهر المنتج في صفحة هذا التصنيف، وبلا تصنيف يظهر تحت «منتجات أخرى».{% else %}لا توجد تصنيفات بعد. أضفها من <a href="{{ url_for('cats_admin.categories') }}">التصنيفات</a>.{% endif %}</span></p>
 <fieldset class="wide delivery-pick">
   <legend>طريقة التسليم</legend>
   <label class="check"><input type="radio" name="delivery" value="codes"{% if f.delivery != 'manual' and not f.manual %} checked{% endif %}> فوري: كود من المخزون يصل بالإيميل</label>
