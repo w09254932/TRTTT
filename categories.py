@@ -13,6 +13,7 @@ from security import too_many
 from validate import clean_text
 
 MAX_IMAGE = 300 * 1024
+MAX_UPLOAD = 12 * 1024 * 1024     # a phone photo arrives whole when the browser could not shrink it, and is refused kindly
 MAX_CATEGORIES = 40
 NO_IMAGE = "صورة التصنيف يجب أن تكون PNG أو JPG أو WebP بحجم أقل من 300 كيلوبايت."
 CAT_RE_LEN = 8
@@ -81,16 +82,19 @@ cats_admin = Blueprint("cats_admin", __name__, url_prefix="/admin")
 def protect():
     from views_admin import guard
     if request.method == "POST":
-        request.max_content_length = MAX_IMAGE + 64 * 1024
+        request.max_content_length = MAX_UPLOAD
     return guard()
 
 
 def _image():
     """(bytes or None, error) of the uploaded picture."""
     upload = request.files.get("image")
-    data = upload.read(MAX_IMAGE + 1) if upload and upload.filename else b""
-    if data and (len(data) > MAX_IMAGE or not image_type(data)):
+    data = upload.read(MAX_UPLOAD) if upload and upload.filename else b""
+    if data and not image_type(data):
         return None, NO_IMAGE
+    if len(data) > MAX_IMAGE:
+        return None, (f"حجم الصورة {len(data) / 1024 / 1024:.1f} ميجابايت، والحد 300 كيلوبايت. "
+                      "صغّرها أو اختر صورة أصغر، أو افتح الصفحة من متصفح حديث فيصغّرها وحده.")
     return data or None, None
 
 

@@ -1,5 +1,6 @@
 {% extends "admin.html" %}
 {% block title %}التصنيفات | {{ store_name }}{% endblock %}
+{% block head %}<script src="{{ url_for('static', filename='shrink.js') }}" defer></script>{% endblock %}
 {% block main %}
 <section class="sheet">
   <p class="muted"><a href="{{ url_for('shop_admin.products') }}">المتجر</a></p>
@@ -10,8 +11,9 @@
     <input type="hidden" name="csrf" value="{{ csrf_token() }}">
     <p><label for="c-name">اسم التصنيف</label>
       <input id="c-name" name="name" maxlength="40" required placeholder="شدات ببجي"></p>
-    <p><label for="c-image">صورة (PNG أو JPG أو WebP، أقل من 300 كيلوبايت)</label>
-      <input id="c-image" name="image" type="file" accept="image/png,image/jpeg,image/webp"></p>
+    <p><label for="c-image">صورة (PNG أو JPG أو WebP)</label>
+      <input id="c-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" data-shrink="c-image-note">
+      <span class="hint" id="c-image-note" aria-live="polite">تُصغَّر الصورة تلقائياً قبل الرفع.</span></p>
     <p class="wide"><button class="primary" type="submit">إضافة التصنيف</button></p>
   </form>
 </section>
@@ -29,7 +31,8 @@
         <label for="c-order-{{ c.id }}">الترتيب</label>
         <input id="c-order-{{ c.id }}" name="order" inputmode="numeric" dir="ltr" maxlength="3" value="{{ c.order }}">
         <label for="c-image-{{ c.id }}">تغيير الصورة</label>
-        <input id="c-image-{{ c.id }}" name="image" type="file" accept="image/png,image/jpeg,image/webp">
+        <input id="c-image-{{ c.id }}" name="image" type="file" accept="image/png,image/jpeg,image/webp" data-shrink="c-note-{{ c.id }}">
+        <span class="hint" id="c-note-{{ c.id }}" aria-live="polite"></span>
         {% if c.image %}<label class="check"><input type="checkbox" name="remove_image" value="1"> حذف الصورة</label>{% endif %}
         <button class="quiet" type="submit">حفظ</button>
       </form>
