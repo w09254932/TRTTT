@@ -107,7 +107,7 @@ def pay(token):
     back = f"{svc().cfg.base_url}/p/{token}/done"
     try:
         extra = {} if svc().gateway.legacy else {      # the API-key system also shows the order on its page
-            "items": checkout_items(inv), "title": inv["private"].get("title") or ""}
+            "items": checkout_items(inv, svc().cfg.store_name), "title": inv["private"].get("title") or ""}
         checkout = svc().gateway.initiate(order_id, inv["amount"], customer, back + "?r=ok", back + "?r=fail",
                                           payer_ip=client_ip(), **extra)
     except GatewayError as exc:
