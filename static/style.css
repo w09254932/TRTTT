@@ -457,6 +457,34 @@ input[readonly] { cursor: default; }
 #for-gift:checked ~ .for-gift { display: block; }
 #for-gift:checked ~ .for-me { display: none; }
 .gift-tag { color: var(--accent-text); }
+/* products done by hand: what the customer types, the three steps, the owner's queue */
+.by-hand { color: var(--accent-text); }
+.tags .by-hand { border: 1px solid var(--accent); border-radius: 999px; padding: 0 .55rem; }
+.needs { margin: 0 0 .9rem; padding: .7rem .9rem .3rem; border: 1px solid var(--accent); border-radius: 12px; background: var(--field); }
+.needs legend { padding: 0 .4rem; font-weight: 700; color: var(--accent-text); }
+.needs input { margin-bottom: .7rem; }
+.needs .hint { margin: 0 0 .5rem; font-size: .78rem; }
+.needs-for { margin: 0 0 .6rem; font-weight: 600; }
+.q-facts { margin: .2rem 0; }
+.delivery-pick { border: 1px solid var(--line); border-radius: 12px; padding: .7rem .9rem; }
+.delivery-pick legend { padding: 0 .4rem; font-weight: 700; }
+.delivery-pick .check { margin-bottom: .4rem; }
+.manual-only { margin-top: .6rem; }
+.delivery-pick:has(input[value=codes]:checked) .manual-only { display: none; }
+.field-row { display: grid; grid-template-columns: 1fr auto; gap: .6rem; align-items: center; margin-bottom: .5rem; }
+.work-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin: .8rem 0; padding: 0; }
+.work-steps li { padding-top: .55rem; border-top: 4px solid var(--line); color: var(--muted); font-size: .85rem; text-align: center; }
+.work-steps li.done { border-color: var(--ok); color: var(--ok); }
+.work-steps li.now { border-color: var(--accent); color: var(--accent-text); font-weight: 700; }
+.work-steps.small { grid-column: 1 / -1; margin: .3rem 0 0; }
+.work-steps.small li { font-size: .75rem; padding-top: .35rem; border-top-width: 3px; }
+.work-name { margin: 1rem 0 .3rem; font-size: 1rem; }
+.chip.working { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-text); }
+.queue { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; }
+.queue li { border: 1px solid var(--line); border-radius: 14px; padding: .8rem 1rem; display: grid; gap: .3rem; background: var(--field); }
+.queue .q-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .4rem; align-items: baseline; }
+.queue .late { color: var(--bad); font-weight: 700; }
+.queue .q-do { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .3rem; }
 .peek-buy { display: grid; gap: .5rem; }
 .peek-buy form { margin: 0; }
 .peek-buy button { width: 100%; }

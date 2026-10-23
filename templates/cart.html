@@ -12,7 +12,7 @@
     <li class="line">
       <div class="line-what">
         <h2 dir="auto">{{ p.name }}</h2>
-        <p class="muted">{{ p.price|money }} ر.س للواحد{% if p.available < qty %} · <span class="bad-text">المتوفر {{ p.available }} فقط</span>{% endif %}</p>
+        <p class="muted">{{ p.price|money }} ر.س للواحد{% if p.available < qty %} · <span class="bad-text">المتوفر {{ p.available }} فقط</span>{% endif %}{% if p.manual %} · <span class="by-hand">ينفّذه المتجر{% if p.eta %} {{ p.eta }}{% endif %}</span>{% endif %}</p>
       </div>
       <div class="line-do">
         <div class="qty" role="group" aria-label="الكمية">
@@ -36,6 +36,17 @@
     {% if me and me.name and me.phone %}
     <form method="post" action="{{ url_for('cart.checkout') }}" class="buy-for">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      {% for p, qty in rows if p.manual and p.fields %}
+      <fieldset class="needs">
+        <legend>بيانات التنفيذ</legend>
+        <p class="needs-for" dir="auto">{{ p.name }}{% if qty > 1 %} × {{ qty }}{% endif %}</p>
+        {% for fld in p.fields %}
+        <label for="m-{{ p.id }}-{{ loop.index0 }}">{{ fld.label }}{% if not fld.required %} <small>(اختياري)</small>{% endif %}</label>
+        <input id="m-{{ p.id }}-{{ loop.index0 }}" name="m_{{ p.id }}_{{ loop.index0 }}" maxlength="120" dir="auto"{% if fld.required %} required{% endif %} value="{{ form.get('m_' ~ p.id ~ '_' ~ loop.index0, '') }}">
+        {% endfor %}
+        <p class="hint">تأكد منها جيداً، فالمتجر ينفّذ طلبك عليها كما كتبتها.</p>
+      </fieldset>
+      {% endfor %}
       {#- Two choices; the chosen one shows its own part (static/style.css, no script needed). -#}
       <input class="visually-hidden" type="radio" name="for" value="me" id="for-me"{% if form.get('for') != 'gift' %} checked{% endif %}>
       <input class="visually-hidden" type="radio" name="for" value="gift" id="for-gift"{% if form.get('for') == 'gift' %} checked{% endif %}>
@@ -47,7 +58,7 @@
         <div><dt>الاسم</dt><dd>{{ me.name }}</dd></div>
         <div><dt>الجوال</dt><dd><bdi>{{ me.phone|phone }}</bdi></dd></div>
         <div><dt>البريد</dt><dd><bdi>{{ me.email }}</bdi></dd></div>
-      </dl><p class="hint">تصل الأكواد إلى بريدك فور تأكيد الدفع.</p></div>
+      </dl><p class="hint">{% if rows|selectattr('0.manual')|list %}يصلك طلبك على بريدك فور تأكيد الدفع، ثم إشعار حين يُنفّذ.{% else %}تصل الأكواد إلى بريدك فور تأكيد الدفع.{% endif %}</p></div>
       <div class="for-gift">
         <label for="gift-email">بريد صديقك</label>
         <input id="gift-email" name="gift_email" type="email" dir="ltr" maxlength="120" value="{{ form.gift_email or '' }}" placeholder="friend@example.com">

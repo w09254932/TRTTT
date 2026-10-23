@@ -177,7 +177,16 @@ def owner_notice(s, inv_id, delivered=None):
         if short and inv.get("goods"):
             rows.append(("أكواد ناقصة", f"{short}. " + NO_CODE_TEXT))
         lines = inv.get("lines") or ([{"pid": inv["product"], "name": ""}] if inv.get("product") else [])
+        handmade = [line for line in lines if line.get("manual")]
+        if handmade:
+            from manual import open_answers
+            typed = open_answers(s.store.vault, inv)
+            for line in handmade:
+                said = "، ".join(f"{label}: {value}" for label, value in typed.get(line["pid"], []) if value)
+                rows.append((f"نفّذ يدوياً: {line['name']} × {line['qty']}", said or "بدون بيانات"))
         for line in lines:
+            if line.get("manual"):
+                continue
             product = s.shop.get(line["pid"])
             label = "المتبقي من أكواد المنتج" if len(lines) == 1 else f"المتبقي من {line['name']}"
             rows.append((label, str(product["available"]) if product else "المنتج محذوف"))

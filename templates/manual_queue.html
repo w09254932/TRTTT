@@ -1,0 +1,36 @@
+{% extends "admin.html" %}
+{% block title %}التنفيذ اليدوي | {{ store_name }}{% endblock %}
+{% block main %}
+<section class="sheet">
+  <h1>التنفيذ اليدوي</h1>
+  <p class="muted">{% if rows %}{{ rows|length }} طلب مدفوع ينتظر التنفيذ، الأقدم أولاً.{% else %}لا توجد طلبات تنتظر التنفيذ الآن.{% endif %}</p>
+  {% if rows %}
+  <ul class="queue">
+    {% for inv in rows %}
+    {% set minutes = ((moment - (inv.paid_at or inv.created_at)).total_seconds() // 60)|int %}
+    <li>
+      <div class="q-top">
+        <a href="{{ url_for('admin.invoice', inv_id=inv.id) }}#work"><b dir="auto">{{ inv.private.title or 'طلب' }}</b></a>
+        <span class="chip {{ 'working' if inv.work.state == 'working' else 'pending' }}">{{ state_ar[inv.work.state] }}</span>
+      </div>
+      <span class="muted">{{ inv.private.name or 'عميل' }} · {{ inv.amount|money }} ر.س · <span class="{{ 'late' if minutes >= 60 }}">منذ {% if minutes < 60 %}{{ minutes }} د{% else %}{{ minutes // 60 }} س {{ minutes % 60 }} د{% endif %}</span></span>
+      {% for name, pairs in answers_for(inv) %}
+      <dl class="facts q-facts">
+        {% for label, value in pairs %}<div><dt>{{ label }}</dt><dd><bdi class="code-text">{{ value }}</bdi> <button class="plain" type="button" data-copy="{{ value }}">نسخ</button></dd></div>{% else %}<div><dt>{{ name }}</dt><dd class="muted">بدون بيانات</dd></div>{% endfor %}
+      </dl>
+      {% endfor %}
+      <div class="q-do">
+        {% if inv.work.state == 'queued' %}
+        <form method="post" action="{{ url_for('manual_admin.start', inv_id=inv.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="/admin/manual">
+          <button class="quiet" type="submit">بدأت</button>
+        </form>
+        {% endif %}
+        <a class="primary" href="{{ url_for('admin.invoice', inv_id=inv.id) }}#work">إنهاء وإبلاغ العميل</a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endblock %}

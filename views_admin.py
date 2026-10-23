@@ -10,6 +10,7 @@ import legacy_flow
 import notices
 from edfapay import GatewayError
 from gateway_details import describe
+from manual import answers_for, proof_of
 from mailer import hint
 from phones import clean_phone
 from security import check_csrf, check_owner, ip_key, sign_in, signed_in, too_many
@@ -179,7 +180,9 @@ def invoice(inv_id):
     return render_template("invoice.html", inv=inv, link=link, events=svc().store.events_for(inv_id),
                            whatsapp=f"https://wa.me/{phone}?text={text}", goods=svc().store.goods(inv),
                            mailing=svc().mailer.ready, delivery=inv.get("delivery") or {}, product=product,
-                           missing=missing, details=details, legacy=svc().gateway.legacy)
+                           missing=missing, details=details, legacy=svc().gateway.legacy,
+                           typed=answers_for(inv) if inv.get("answers") else [],
+                           proof=proof_of(inv) if (inv.get("work") or {}).get("proof") else {})
 
 
 @admin.post("/invoices/<inv_id>/goods")

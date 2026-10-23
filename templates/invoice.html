@@ -50,6 +50,36 @@
     {% endif %}
   </div>
 </section>
+{% if inv.work or typed %}
+<section class="sheet" id="work">
+  <h2>التنفيذ اليدوي</h2>
+  {% set steps = work_steps(inv) %}{% if steps %}<ol class="work-steps" aria-label="مراحل التنفيذ">{% for label, mark in steps %}<li class="{{ mark }}">{{ label }}</li>{% endfor %}</ol>{% endif %}
+  {% for name, pairs in typed %}
+  <h3 class="work-name">{{ name }}</h3>
+  <dl class="facts">{% for label, value in pairs %}<div><dt>{{ label }}</dt><dd><bdi class="code-text">{{ value }}</bdi> <button class="plain" type="button" data-copy="{{ value }}">نسخ</button></dd></div>{% endfor %}</dl>
+  {% endfor %}
+  {% if inv.work.state == 'queued' %}
+  <form method="post" action="{{ url_for('manual_admin.start', inv_id=inv.id) }}" class="gap">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <button class="quiet" type="submit">بدأت التنفيذ</button>
+  </form>
+  {% endif %}
+  {% if inv.work and inv.work.state != 'done' and inv.status == 'paid' %}
+  <form method="post" action="{{ url_for('manual_admin.finish', inv_id=inv.id) }}" class="goods-form gap">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="work-note">ملاحظة تصل للعميل</label>
+    <input id="work-note" name="note" maxlength="300" dir="auto" placeholder="تم الشحن على الآيدي">
+    <label for="work-ref">رقم العملية (اختياري)</label>
+    <input id="work-ref" name="ref" maxlength="80" dir="ltr">
+    <button class="primary" type="submit">تم التنفيذ وأبلغ العميل</button>
+  </form>
+  {% elif inv.work and inv.work.state == 'done' %}
+  <p class="muted">نُفّذ <bdi>{{ inv.work.done_at|when }}</bdi>{% if proof.note %}: {{ proof.note }}{% endif %}{% if proof.ref %} · رقم العملية <bdi>{{ proof.ref }}</bdi>{% endif %}</p>
+  {% elif not inv.work %}
+  <p class="muted">يدخل الطلب طابور التنفيذ حين يُدفع.</p>
+  {% endif %}
+</section>
+{% endif %}
 {% if details is not none %}
 <section class="sheet" id="gateway">
   <h2>تفاصيل الدفعة من EdfaPay</h2>

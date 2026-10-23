@@ -1,3 +1,7 @@
+{% set steps = work_steps(inv) %}{% if steps %}
+<ol class="work-steps" aria-label="مراحل تنفيذ طلبك">{% for label, mark in steps %}<li class="{{ mark }}">{{ label }}</li>{% endfor %}</ol>
+<p class="note">{% if inv.work.state == 'done' %}نُفّذ طلبك، وأرسلنا التفاصيل إلى بريدك.{% elif inv.work.state == 'working' %}يُنفّذ طلبك الآن.{% else %}استلمنا طلبك وينفّذه المتجر{% for line in inv.lines if line.manual and line.eta %}{% if loop.first %} {{ line.eta }}{% endif %}{% endfor %}. يصلك إشعار على بريدك حين يُنفّذ.{% endif %}</p>
+{% endif %}
 {% if inv.has_goods %}{% set state = (inv.delivery or {}).state %}{% set late = (inv.paid_from or 'pending') != 'pending' and state != 'sent' and not inv.product %}
 {% if not mailing or state == 'failed' or not inv.deliver_email or late %}<p class="note">سيتواصل معك {{ store_name }} لتسليم طلبك.</p>
 {% elif inv.gift and state == 'sent' %}<p class="note">أرسلنا الهدية إلى بريد صديقك <bdi>{{ inv.deliver_email|mask }}</bdi>.</p>

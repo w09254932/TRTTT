@@ -112,6 +112,7 @@ def create_app(cfg=None, client=None):
     from broadcasts import Broadcasts, leave, messages
     from customers import CustomerBook, book
     from legacy_flow import legacy
+    from manual import manual_admin, steps_of
     from policies import policies
     from products import Shop, shop, shop_admin
     from twostep import LoginCodes, twostep
@@ -125,6 +126,7 @@ def create_app(cfg=None, client=None):
                                             accounts=Accounts(store.db, vault, cfg))
     app.add_template_global(signed_in_customer, "customer_account")
     app.add_template_global(cart_count, "cart_count")
+    app.add_template_global(steps_of, "work_steps")
     app.add_template_global(lambda: app.extensions["svc"].brand.get(), "brand_look")
     app.register_blueprint(admin)
     app.register_blueprint(pub)
@@ -138,6 +140,7 @@ def create_app(cfg=None, client=None):
     app.register_blueprint(leave)
     app.register_blueprint(account)
     app.register_blueprint(cart)
+    app.register_blueprint(manual_admin)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

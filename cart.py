@@ -4,6 +4,7 @@ the two agreements. The cart lives in the browser's session (product ids and qua
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
 
 from accounts import signed_in_customer
+from manual import read_fields
 from products import PID_RE
 from security import check_csrf, too_many
 from validate import clean_email, clean_text
@@ -121,13 +122,18 @@ def checkout():
         flash("أكمل اسمك ورقم جوالك ليُكتبا في طلبك، ثم ارجع إلى السلة.", "error")
         return redirect(url_for("account.details", next=url_for(".view")), 303)
     gift, error = _gift(me)
+    rows = _lines()
+    answers = {}
+    for product, _ in rows:      # what each product done by hand needs from the customer
+        if product["manual"] and not error:
+            answers[product["id"]], error = read_fields(request.form, product)
     if error:
         flash(error, "error")
         return view(request.form, 400)
     if too_many("order", 10, per=600):
         abort(429)
-    rows = _lines()
-    token, error = svc().shop.order([(p["id"], q) for p, q in rows], person(me), me["id"], lambda: _customer(me))
+    token, error = svc().shop.order([(p["id"], q) for p, q in rows], person(me), me["id"], lambda: _customer(me),
+                                    answers=answers)
     if error:
         flash(error, "error")
         return redirect(url_for(".view"), 303)
@@ -158,6 +164,12 @@ def buy(pid):
     if not product or not product["active"] or product["available"] <= 0:
         flash("هذا المنتج غير متاح الآن. اختر منتجاً آخر.", "error")
         return redirect(url_for("shop.store"), 303)
+    if product["manual"]:      # it needs the customer's details, written in the cart
+        items = contents()
+        items[pid] = max(1, items.get(pid, 0))
+        _save(items)
+        flash(f"اكتب بيانات «{product['name']}» في السلة ثم أكمل طلبك.")
+        return redirect(url_for(".view"), 303)
     me = signed_in_customer()
     if not me:
         flash("سجّل الدخول لإتمام الشراء.", "error")

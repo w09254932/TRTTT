@@ -9,6 +9,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 from google.cloud import firestore
 
 from db import ID_CHARS, _read, now
+from manual import MAX_FIELDS, is_manual, manual_block, open_answers, seal_answers
 from security import signed_in, too_many
 from validate import clean_amount, clean_text
 
@@ -17,6 +18,7 @@ MAX_ADD = 400           # codes added in one go
 CODE_LIMIT = 500        # characters in one code (a code can also be a link)
 PID_RE = re.compile(r"^[A-Z2-9]{10}$")
 CID_RE = re.compile(r"^\d{20}[a-z0-9]{4}$")
+MANUAL_STOCK = 99       # a product done by hand never runs out; the cart still caps one order's quantity
 
 
 def _live(holds, moment, skip=None):
@@ -45,13 +47,17 @@ def order_title(lines):
     return " + ".join(parts)[:120]
 
 
-def goods_text(lines, picked):
-    """The order emailed to the customer: each product's codes, then how to use them."""
-    if len(lines) == 1 and lines[0]["qty"] == 1:
+def goods_text(lines, picked, answers=None):
+    """The order emailed to the customer: each product's codes, then how to use them; a product done by hand
+    says what the customer typed for it and that the store carries it out."""
+    if len(lines) == 1 and lines[0]["qty"] == 1 and not is_manual(lines[0]):
         codes, note = picked.get(lines[0]["pid"], []), lines[0].get("note", "")
         return f"{codes[0]}\n\n{note}" if codes and note else (codes[0] if codes else "")
     blocks = []
     for line in lines:
+        if is_manual(line):
+            blocks.append(manual_block(line, answers or {}))
+            continue
         codes = picked.get(line["pid"], [])
         if not codes:
             continue
@@ -84,10 +90,12 @@ class Shop:
             return None
         data, moment = snap.to_dict() or {}, now()
         stock, held = data.get("stock", 0), len(_live(data.get("holds"), moment))
+        manual = data.get("delivery") == "manual"
         return {"id": snap.id, "name": data.get("name", ""), "description": data.get("description", ""),
                 "note": data.get("note", ""), "price": data.get("price", 0.0), "active": data.get("active", True),
-                "stock": stock, "held": held, "available": max(0, stock - held), "sold": data.get("sold", 0),
-                "created_at": data.get("created_at")}
+                "stock": stock, "held": held, "available": MANUAL_STOCK if manual else max(0, stock - held),
+                "sold": data.get("sold", 0), "created_at": data.get("created_at"),
+                "manual": manual, "eta": data.get("eta", ""), "fields": data.get("fields") or []}
 
     def get(self, pid):
         return self._view(self.products.document(pid).get()) if PID_RE.match(pid or "") else None
@@ -99,15 +107,17 @@ class Shop:
     def catalog(self):
         return [p for p in self.all() if p["active"]]
 
-    def create(self, name, description, note, price, active=True):
+    def create(self, name, description, note, price, active=True, delivery="codes", eta="", fields=()):
         pid = "".join(secrets.choice(ID_CHARS) for _ in range(10))
         self.products.document(pid).set({"name": name, "description": description, "note": note, "price": price,
-                                         "active": active, "stock": 0, "sold": 0, "holds": {}, "created_at": now()})
+                                         "active": active, "stock": 0, "sold": 0, "holds": {}, "created_at": now(),
+                                         "delivery": delivery, "eta": eta, "fields": list(fields)})
         return pid
 
-    def update(self, pid, name, description, note, price, active):
+    def update(self, pid, name, description, note, price, active, delivery="codes", eta="", fields=()):
         self.products.document(pid).update({"name": name, "description": description, "note": note,
-                                            "price": price, "active": active})
+                                            "price": price, "active": active, "delivery": delivery, "eta": eta,
+                                            "fields": list(fields)})
 
     def delete(self, pid):
         """Only a product with no codes left and no order being paid can go; returns False otherwise."""
@@ -177,9 +187,10 @@ class Shop:
         return self._run(work)
 
     # ---- orders
-    def order(self, lines, person, buyer, customer=None):
+    def order(self, lines, person, buyer, customer=None, answers=None):
         """Opens an invoice for the cart's lines [(pid, qty)] of a signed-in customer, with their details written in.
-        Returns its token, or (None, why) when a product cannot be bought in that quantity."""
+        answers holds what the customer typed for each product done by hand. Returns its token, or (None, why)
+        when a product cannot be bought in that quantity."""
         picked = []
         for pid, qty in lines:
             product = self.get(pid)
@@ -187,8 +198,10 @@ class Shop:
                 return None, f"«{product['name']}» غير متاح الآن." if product else "منتج في سلتك لم يعد موجوداً."
             if qty > product["available"]:
                 return None, f"المتوفر من «{product['name']}» {product['available']} فقط."
-            picked.append({"pid": pid, "qty": qty, "name": product["name"], "price": product["price"],
-                           "note": product["note"]})
+            line = {"pid": pid, "qty": qty, "name": product["name"], "price": product["price"], "note": product["note"]}
+            if product["manual"]:
+                line.update(manual=True, eta=product["eta"])
+            picked.append(line)
         if not picked:
             return None, "سلتك فارغة."
         amount = round(sum(line["price"] * line["qty"] for line in picked), 2)
@@ -196,11 +209,17 @@ class Shop:
         inv_id = self.store.create_invoice(amount, {"title": order_title(picked), **person}, 0, customer=customer,
                                            extra={"product": picked[0]["pid"], "lines": picked, "buyer": buyer},
                                            minutes=ORDER_MINUTES)
+        mine = {pid: pairs for pid, pairs in (answers or {}).items() if any(l["pid"] == pid and is_manual(l) for l in picked)}
+        if mine:
+            self.store.invoices.document(inv_id).update({"answers": seal_answers(self.vault, inv_id, mine)})
         return self.store.get(inv_id)["token"], None
 
     def hold(self, inv):
-        """Keeps the order's codes aside while its customer pays. False when one product has too few left."""
-        lines = lines_of(inv)
+        """Keeps the order's codes aside while its customer pays. False when one product has too few left.
+        A product done by hand has no codes to keep."""
+        lines = [line for line in lines_of(inv) if not is_manual(line)]
+        if not lines:
+            return True
         refs = {line["pid"]: self.products.document(line["pid"]) for line in lines}
 
         def work(tx):
@@ -239,7 +258,7 @@ class Shop:
     def missing(self, inv):
         """How many codes a paid shop order is still owed."""
         given = inv.get("given") or {}
-        return sum(max(0, line["qty"] - len(given.get(line["pid"], []))) for line in lines_of(inv))
+        return sum(max(0, line["qty"] - len(given.get(line["pid"], []))) for line in lines_of(inv) if not is_manual(line))
 
     def assign(self, inv_id):
         """Gives a paid shop order its codes, once each: they become the order emailed to the customer.
@@ -253,7 +272,11 @@ class Shop:
         if not data.get("lines") and data.get("code_id"):
             return "already"     # an order from before the cart, handed out already
         handed, short, given = 0, False, data.get("given") or {}
+        if any(is_manual(line) for line in lines) and self._queue(inv_ref, inv_id) == "queued":
+            handed += 1      # the order's products done by hand wait in the owner's queue from now
         for line in lines:
+            if is_manual(line):
+                continue
             for _ in range(max(0, line["qty"] - len(given.get(line["pid"], [])))):
                 result = self._give_one(inv_ref, inv_id, line)
                 if result == "given":
@@ -266,6 +289,31 @@ class Shop:
         if short:
             return "partial" if handed or (inv_ref.get().to_dict() or {}).get("given") else "empty"
         return "assigned" if handed else "already"
+
+    def _queue(self, inv_ref, inv_id):
+        """Puts a paid order's products done by hand in the owner's queue, once; its email says they are coming.
+        'queued', 'already' or 'unpaid'."""
+        def work(tx):
+            inv = _read(tx, inv_ref).to_dict() or {}
+            if inv.get("status") != "paid":
+                return "unpaid"
+            if inv.get("work"):
+                return "already"
+            inv["id"] = inv_id
+            lines = lines_of(inv)
+            manual = [line for line in lines if is_manual(line)]
+            refs = {line["pid"]: self.products.document(line["pid"]) for line in manual}
+            snaps = {pid: _read(tx, ref) for pid, ref in refs.items()}
+            picked = self.vault.open(inv["picked"], "picked:" + inv_id) if inv.get("picked") else {}
+            goods = goods_text(lines, picked, open_answers(self.vault, inv))
+            tx.update(inv_ref, {"work": {"state": "queued", "queued_at": now()}, "work_open": True,
+                                "goods": self.store._seal_goods(goods, inv_id)})
+            for line in manual:
+                if snaps[line["pid"]].exists:
+                    tx.update(refs[line["pid"]], {"sold": firestore.Increment(line["qty"])})
+            return "queued"
+
+        return self._run(work)
 
     def _give_one(self, inv_ref, inv_id, line):
         """One code of this line to the order. 'given', 'full' (the line has all its codes), 'empty' or 'unpaid'."""
@@ -299,8 +347,9 @@ class Shop:
                 for item in lines:     # an order from before the cart takes the product's note now
                     if item["pid"] == pid and not item.get("note"):
                         item["note"] = (snap.to_dict() or {}).get("note", "")
+                inv["id"] = inv_id
                 changes = {"given": given, "picked": self.vault.seal(picked, "picked:" + inv_id),
-                           "goods": self.store._seal_goods(goods_text(lines, picked), inv_id)}
+                           "goods": self.store._seal_goods(goods_text(lines, picked, open_answers(self.vault, inv)), inv_id)}
                 if not inv.get("code_id"):
                     changes["code_id"] = free.id
                 tx.update(inv_ref, changes)
@@ -361,7 +410,14 @@ def _fields(form):
         error = "اكتب اسم المنتج."
     fields = {"name": name, "price": price, "description": clean_text(form.get("description", ""), 300),
               "note": "\n".join(" ".join(line.split()) for line in form.get("note", "").splitlines()).strip()[:1000],
-              "active": form.get("active") == "1"}
+              "active": form.get("active") == "1",
+              "delivery": "manual" if form.get("delivery") == "manual" else "codes",
+              "eta": clean_text(form.get("eta", ""), 40), "fields": []}
+    if fields["delivery"] == "manual":
+        for number in range(MAX_FIELDS):
+            label = clean_text(form.get(f"field_{number}", ""), 40)
+            if label:
+                fields["fields"].append({"label": label, "required": form.get(f"field_{number}_req") == "1"})
     return fields, error
 
 
@@ -376,8 +432,9 @@ def create():
     fields, error = _fields(request.form)
     if error:
         return products(request.form, error, 400)
-    pid = svc().shop.create(fields["name"], fields["description"], fields["note"], fields["price"], fields["active"])
-    flash("تمت إضافة المنتج. أضف أكواده الآن.")
+    pid = svc().shop.create(fields["name"], fields["description"], fields["note"], fields["price"], fields["active"],
+                            fields["delivery"], fields["eta"], fields["fields"])
+    flash("تمت إضافة المنتج، وينفَّذ يدوياً." if fields["delivery"] == "manual" else "تمت إضافة المنتج. أضف أكواده الآن.")
     return redirect(url_for(".product", pid=pid), 303)
 
 
@@ -401,7 +458,8 @@ def edit(pid):
     fields, error = _fields(request.form)
     if error:
         return product(pid, error, 400, request.form)
-    svc().shop.update(pid, fields["name"], fields["description"], fields["note"], fields["price"], fields["active"])
+    svc().shop.update(pid, fields["name"], fields["description"], fields["note"], fields["price"], fields["active"],
+                      fields["delivery"], fields["eta"], fields["fields"])
     flash("تم حفظ المنتج.")
     return redirect(url_for(".product", pid=pid), 303)
 

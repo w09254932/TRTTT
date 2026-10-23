@@ -5,13 +5,20 @@
   <p class="muted"><a href="{{ url_for('shop_admin.products') }}">المتجر</a></p>
   <h1>{{ p.name }}</h1>
   <p class="total"><b>{{ p.price|money }}</b> ر.س
-    {% if not p.active %}<span class="chip">مخفي</span>{% elif p.available %}<span class="chip paid">معروض</span>{% else %}<span class="chip pending">نفدت الأكواد</span>{% endif %}</p>
+    {% if not p.active %}<span class="chip">مخفي</span>{% elif p.available %}<span class="chip paid">معروض</span>{% else %}<span class="chip pending">نفدت الأكواد</span>{% endif %}
+    {% if p.manual %}<span class="chip working">تنفيذ يدوي</span>{% endif %}</p>
   <dl class="facts">
+    {% if p.manual %}
+    <div><dt>التسليم</dt><dd>تنفّذه أنت بعد الدفع{% if p.eta %}، {{ p.eta }}{% endif %}</dd></div>
+    <div><dt>يكتب العميل</dt><dd>{% for fld in p.fields %}{{ fld.label }}{% if not fld.required %} (اختياري){% endif %}{% if not loop.last %}، {% endif %}{% else %}لا شيء{% endfor %}</dd></div>
+    {% else %}
     <div><dt>أكواد متاحة</dt><dd>{{ p.stock }}</dd></div>
     <div><dt>محجوزة لطلبات قيد الدفع</dt><dd>{{ p.held }}</dd></div>
+    {% endif %}
     <div><dt>بيع</dt><dd>{{ p.sold }}</dd></div>
   </dl>
 </section>
+{% if not p.manual or p.stock %}
 <section class="sheet" id="codes">
   <h2>إضافة أكواد</h2>
   <form method="post" action="{{ url_for('shop_admin.add_codes', pid=p.id) }}#codes" class="goods-form">
@@ -55,6 +62,7 @@
   <p class="muted">لم يُبع شيء من هذا المنتج بعد.</p>
   {% endif %}
 </section>
+{% endif %}
 <section class="sheet" id="edit">
   <h2>تعديل المنتج</h2>
   {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}

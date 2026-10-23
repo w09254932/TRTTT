@@ -22,8 +22,9 @@
         {% if p.description %}<p class="desc" dir="auto">{{ p.description }}</p>{% endif %}
       </div>
       <div class="item-buy">
-        {% if 0 < p.available <= 3 or p.sold %}<p class="tags">
-          {%- if 0 < p.available <= 3 %}<span class="few">باقي {{ p.available }}</span>{% endif -%}
+        {% if 0 < p.available <= 3 or p.sold or p.manual %}<p class="tags">
+          {%- if p.manual %}<span class="by-hand">{{ p.eta or 'تنفيذ يدوي' }}</span>{% endif -%}
+          {%- if 0 < p.available <= 3 and not p.manual %}<span class="few">باقي {{ p.available }}</span>{% endif -%}
           {%- if p.sold %}<span class="sold">مباع {{ p.sold }}</span>{% endif -%}
         </p>{% endif %}
         <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
@@ -48,11 +49,12 @@
       <p class="peek-price"><b>{{ p.price|money }}</b> ر.س</p>
       {% if p.description %}<p class="peek-desc" dir="auto">{{ p.description }}</p>{% endif %}
       <dl class="peek-facts">
-        <div><dt>الحالة</dt><dd class="{{ 'bad' if not p.available else ('few' if p.available <= 3 else 'ok') }}">
-          {%- if not p.available %}نفدت الكمية{% elif p.available <= 3 %}باقي {{ p.available }} فقط{% else %}متوفر{% endif -%}
+        <div><dt>الحالة</dt><dd class="{{ 'bad' if not p.available else ('few' if p.available <= 3 and not p.manual else 'ok') }}">
+          {%- if not p.available %}نفدت الكمية{% elif p.available <= 3 and not p.manual %}باقي {{ p.available }} فقط{% else %}متوفر{% endif -%}
         </dd></div>
         {% if p.sold %}<div><dt>مباع</dt><dd>{{ p.sold }}</dd></div>{% endif %}
-        <div><dt>الاستلام</dt><dd>كود يصلك على بريدك لحظة تأكيد الدفع</dd></div>
+        <div><dt>الاستلام</dt><dd>{% if p.manual %}ينفّذه المتجر بعد الدفع{% if p.eta %}، {{ p.eta }}{% endif %}، ويصلك إشعار على بريدك{% else %}كود يصلك على بريدك لحظة تأكيد الدفع{% endif %}</dd></div>
+        {% if p.manual and p.fields %}<div><dt>تكتب في السلة</dt><dd>{% for fld in p.fields %}{{ fld.label }}{% if not loop.last %}، {% endif %}{% endfor %}</dd></div>{% endif %}
         <div><dt>الدفع</dt><dd>بالبطاقة عبر بوابة EdfaPay، بعد تسجيل الدخول</dd></div>
       </dl>
       {% if p.available %}

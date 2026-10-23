@@ -10,6 +10,7 @@
 <nav class="tabs" aria-label="أقسام اللوحة">
   <a class="{{ 'on' if request.blueprint == 'admin' }}" href="{{ url_for('admin.dashboard') }}">الفواتير</a>
   <a class="{{ 'on' if request.blueprint == 'shop_admin' }}" href="{{ url_for('shop_admin.products') }}">المتجر</a>
+  <a class="{{ 'on' if request.blueprint == 'manual_admin' }}" href="{{ url_for('manual_admin.queue') }}">التنفيذ اليدوي</a>
   <a class="{{ 'on' if request.blueprint == 'book' }}" href="{{ url_for('book.people') }}">العملاء</a>
   <a class="{{ 'on' if request.blueprint == 'messages' }}" href="{{ url_for('messages.compose') }}">الرسائل</a>
   <a class="{{ 'on' if request.blueprint == 'brand' }}" href="{{ url_for('brand.settings') }}">الإعدادات</a>

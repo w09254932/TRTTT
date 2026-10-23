@@ -19,7 +19,7 @@
   <ul class="rows">
     {% for p in rows %}
     <li><a href="{{ url_for('shop_admin.product', pid=p.id) }}">
-      <span class="what">{{ p.name }}<small>{{ p.stock }} كود متاح{% if p.held %}، {{ p.held }} قيد الدفع{% endif %}، بيع {{ p.sold }}</small></span>
+      <span class="what">{{ p.name }}<small>{% if p.manual %}تنفيذ يدوي{% if p.eta %} {{ p.eta }}{% endif %}{% else %}{{ p.stock }} كود متاح{% if p.held %}، {{ p.held }} قيد الدفع{% endif %}{% endif %}، بيع {{ p.sold }}</small></span>
       <span class="sum">{{ p.price|money }}</span>
       {% if not p.active %}<span class="chip">مخفي</span>{% elif p.available %}<span class="chip paid">معروض</span>{% else %}<span class="chip pending">نفدت الأكواد</span>{% endif %}
     </a></li>
