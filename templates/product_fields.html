@@ -6,6 +6,12 @@
   <input id="p-price" name="price" inputmode="decimal" dir="ltr" required value="{{ '%.2f'|format(f.price) if f.price is number else (f.price or '') }}"></p>
 <p class="wide"><label for="p-description">وصف قصير يظهر في المتجر (اختياري)</label>
   <input id="p-description" name="description" maxlength="300" value="{{ f.description }}"></p>
+<p class="wide"><label for="p-category">التصنيف</label>
+  <select id="p-category" name="category">
+    <option value="">بدون تصنيف</option>
+    {% for c in categories %}<option value="{{ c.id }}"{% if (f.category or '') == c.id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <span class="hint">{% if categories %}يظهر المنتج داخل هذا التصنيف في المتجر، وفي «الكل» دائماً.{% else %}لا توجد تصنيفات بعد. أضفها من <a href="{{ url_for('cats_admin.categories') }}">التصنيفات</a>.{% endif %}</span></p>
 <fieldset class="wide delivery-pick">
   <legend>طريقة التسليم</legend>
   <label class="check"><input type="radio" name="delivery" value="codes"{% if f.delivery != 'manual' and not f.manual %} checked{% endif %}> فوري: كود من المخزون يصل بالإيميل</label>

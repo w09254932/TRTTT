@@ -1,0 +1,47 @@
+{% extends "admin.html" %}
+{% block title %}التصنيفات | {{ store_name }}{% endblock %}
+{% block main %}
+<section class="sheet">
+  <p class="muted"><a href="{{ url_for('shop_admin.products') }}">المتجر</a></p>
+  <h1>التصنيفات</h1>
+  <p class="muted">تظهر التصنيفات بصورها أعلى المتجر، ويضغط العميل على تصنيف فيرى منتجاته. اختر تصنيف كل منتج من صفحة المنتج، والمنتج بلا تصنيف يظهر في «الكل» فقط.</p>
+  {% if error %}<p class="alert" role="alert">{{ error }}</p>{% endif %}
+  <form method="post" action="{{ url_for('cats_admin.create') }}" enctype="multipart/form-data" class="grid">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <p><label for="c-name">اسم التصنيف</label>
+      <input id="c-name" name="name" maxlength="40" required placeholder="شدات ببجي"></p>
+    <p><label for="c-image">صورة (PNG أو JPG أو WebP، أقل من 300 كيلوبايت)</label>
+      <input id="c-image" name="image" type="file" accept="image/png,image/jpeg,image/webp"></p>
+    <p class="wide"><button class="primary" type="submit">إضافة التصنيف</button></p>
+  </form>
+</section>
+<section class="sheet">
+  <h2>تصنيفاتك</h2>
+  {% if rows %}
+  <ul class="cat-admin">
+    {% for c in rows %}
+    <li>
+      <div class="cat-pic">{% if c.image %}<img src="{{ url_for('cat_images.image', cid=c.id, v=c.version) }}" alt="">{% else %}<span>{{ c.name[:1] }}</span>{% endif %}</div>
+      <form method="post" action="{{ url_for('cats_admin.edit', cid=c.id) }}" enctype="multipart/form-data" class="cat-edit">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <label for="c-name-{{ c.id }}">الاسم <small class="muted">· {{ counts.get(c.id, 0) }} منتج</small></label>
+        <input id="c-name-{{ c.id }}" name="name" maxlength="40" required value="{{ c.name }}">
+        <label for="c-order-{{ c.id }}">الترتيب</label>
+        <input id="c-order-{{ c.id }}" name="order" inputmode="numeric" dir="ltr" maxlength="3" value="{{ c.order }}">
+        <label for="c-image-{{ c.id }}">تغيير الصورة</label>
+        <input id="c-image-{{ c.id }}" name="image" type="file" accept="image/png,image/jpeg,image/webp">
+        {% if c.image %}<label class="check"><input type="checkbox" name="remove_image" value="1"> حذف الصورة</label>{% endif %}
+        <button class="quiet" type="submit">حفظ</button>
+      </form>
+      <form method="post" action="{{ url_for('cats_admin.delete', cid=c.id) }}" data-confirm="حذف تصنيف «{{ c.name }}»؟ تبقى منتجاته في المتجر بلا تصنيف.">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="plain" type="submit">حذف التصنيف</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted">لا توجد تصنيفات بعد. المتجر يعرض كل المنتجات معاً حتى تضيف تصنيفاً.</p>
+  {% endif %}
+</section>
+{% endblock %}

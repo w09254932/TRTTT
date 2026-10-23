@@ -12,6 +12,7 @@
     <button class="quiet" type="button" data-share="{{ store_link }}" hidden>مشاركة</button>
     <a class="quiet" href="{{ url_for('shop.store') }}" target="_blank" rel="noopener">فتح المتجر</a>
   </div>
+  <p class="gap"><a class="quiet" href="{{ url_for('cats_admin.categories') }}">التصنيفات وصورها{% if categories %} ({{ categories|length }}){% endif %}</a></p>
 </section>
 <section class="sheet">
   <h2>المنتجات</h2>

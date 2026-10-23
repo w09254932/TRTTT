@@ -10,12 +10,14 @@
     <h1>{{ store_name }}</h1>
     <p>اختر المنتج وادفع بالبطاقة، ويصلك الكود على بريدك لحظة تأكيد الدفع.</p>
   </header>
-  {% for kind, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
+  {% for kind_, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind_ == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
+  {% if total %}{% include "shop_filters.html" %}{% endif %}
+  <p class="empty" id="no-match"{% if products or not total %} hidden{% endif %}>لا توجد منتجات تطابق اختيارك. <a href="{{ url_for('shop.store') }}">عرض الكل</a></p>
   {% if products %}
   {#- Two vouchers to a row: what it is on top, its price and the buy button on the tear-off stub. -#}
   <ul class="items">
     {% for p in products %}
-    <li class="item{{ '' if p.available else ' out' }}">
+    <li class="item{{ '' if p.available else ' out' }}" data-find="{{ (p.name ~ ' ' ~ p.description)|lower }}">
       <div class="item-text">
         <h2 dir="auto">{{ p.name }}</h2>
         <button class="peek" type="button" data-peek="peek-{{ p.id }}" aria-haspopup="dialog" aria-label="تفاصيل {{ p.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -33,8 +35,13 @@
           <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="/">
           <button class="primary" type="submit" aria-label="أضف {{ p.name }} إلى السلة">أضف للسلة</button>
         </form>
+        {% elif p.id in asked %}
+        <p class="soldout asked">سنبلغك عند توفره</p>
         {% else %}
-        <p class="soldout">نفدت الكمية</p>
+        <form method="post" action="{{ url_for('restock.ask', pid=p.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="quiet notify" type="submit" aria-label="نبّهني حين يتوفر {{ p.name }}">نبّهني عند التوفر</button>
+        </form>
         {% endif %}
       </div>
     </li>
@@ -68,13 +75,18 @@
           <button class="quiet" type="submit">أضف إلى السلة</button>
         </form>
       </div>
+      {% elif p.id in asked %}
+      <p class="soldout asked">سنبلغك على بريدك عند توفره</p>
       {% else %}
-      <p class="soldout">نفدت الكمية</p>
+      <form method="post" action="{{ url_for('restock.ask', pid=p.id) }}" class="peek-buy">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button class="quiet" type="submit">نبّهني عند التوفر</button>
+      </form>
       {% endif %}
     </div>
   </dialog>
   {% endfor %}
-  {% else %}
+  {% elif not total %}
   <p class="empty">لا توجد منتجات متاحة الآن. عد لاحقاً.</p>
   {% endif %}
   {% with wa_text = 'مرحباً، عندي سؤال عن ' ~ store_name ~ ': ', wa_lead = 'عندك سؤال عن منتج أو طلب؟' %}{% include "contact.html" %}{% endwith %}

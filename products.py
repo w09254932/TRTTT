@@ -95,7 +95,8 @@ class Shop:
                 "note": data.get("note", ""), "price": data.get("price", 0.0), "active": data.get("active", True),
                 "stock": stock, "held": held, "available": MANUAL_STOCK if manual else max(0, stock - held),
                 "sold": data.get("sold", 0), "created_at": data.get("created_at"),
-                "manual": manual, "eta": data.get("eta", ""), "fields": data.get("fields") or []}
+                "manual": manual, "eta": data.get("eta", ""), "fields": data.get("fields") or [],
+                "category": data.get("category", "")}
 
     def get(self, pid):
         return self._view(self.products.document(pid).get()) if PID_RE.match(pid or "") else None
@@ -118,6 +119,9 @@ class Shop:
         self.products.document(pid).update({"name": name, "description": description, "note": note,
                                             "price": price, "active": active, "delivery": delivery, "eta": eta,
                                             "fields": list(fields)})
+
+    def set_category(self, pid, cid):
+        self.products.document(pid).update({"category": cid or ""})
 
     def delete(self, pid):
         """Only a product with no codes left and no order being paid can go; returns False otherwise."""
@@ -377,8 +381,29 @@ def limit():
 
 @shop.get("/")
 def store():
-    return render_template("shop.html", products=svc().shop.catalog(), brand=svc().brand.get(),
-                           owner=signed_in(svc().cfg))
+    """The store: everything on sale, narrowed by a category, by instant or by hand, and by a search."""
+    from accounts import signed_in_customer
+    from restock import waiting_for
+    everything = svc().shop.catalog()
+    counts = {}
+    for p in everything:
+        if p["category"]:
+            counts[p["category"]] = counts.get(p["category"], 0) + 1
+    cats = [c for c in svc().categories.all() if counts.get(c["id"])]
+    both = len({p["manual"] for p in everything}) > 1
+    cat = request.args.get("cat", "")
+    cat = cat if any(c["id"] == cat for c in cats) else ""
+    kind = request.args.get("kind", "")
+    kind = kind if both and kind in ("instant", "manual") else ""
+    q = clean_text(request.args.get("q", ""), 60)
+    shown = [p for p in everything
+             if (not cat or p["category"] == cat) and (not kind or p["manual"] == (kind == "manual"))
+             and (not q or q.lower() in f"{p['name']} {p['description']}".lower())]
+    me = signed_in_customer()
+    asked = {p["id"] for p in shown if not p["available"] and waiting_for(p["id"], me)} if me else set()
+    return render_template("shop.html", products=shown, brand=svc().brand.get(), owner=signed_in(svc().cfg),
+                           total=len(everything), cats=cats, counts=counts, both=both, cat=cat, kind=kind, q=q,
+                           asked=asked)
 
 
 # Links from before the dashboard moved to /admin (owner emails, bookmarks).
@@ -412,7 +437,8 @@ def _fields(form):
               "note": "\n".join(" ".join(line.split()) for line in form.get("note", "").splitlines()).strip()[:1000],
               "active": form.get("active") == "1",
               "delivery": "manual" if form.get("delivery") == "manual" else "codes",
-              "eta": clean_text(form.get("eta", ""), 40), "fields": []}
+              "eta": clean_text(form.get("eta", ""), 40), "fields": [],
+              "category": form.get("category", "") if svc().categories.get(form.get("category", "")) else ""}
     if fields["delivery"] == "manual":
         for number in range(MAX_FIELDS):
             label = clean_text(form.get(f"field_{number}", ""), 40)
@@ -424,7 +450,8 @@ def _fields(form):
 @shop_admin.get("/products")
 def products(form=None, error=None, code=200):
     return render_template("products.html", rows=svc().shop.all(), form=form or {"active": "1"}, error=error,
-                           store_link=svc().cfg.base_url + "/", mailing=svc().mailer.ready), code
+                           store_link=svc().cfg.base_url + "/", mailing=svc().mailer.ready,
+                           categories=svc().categories.all()), code
 
 
 @shop_admin.post("/products")
@@ -434,6 +461,7 @@ def create():
         return products(request.form, error, 400)
     pid = svc().shop.create(fields["name"], fields["description"], fields["note"], fields["price"], fields["active"],
                             fields["delivery"], fields["eta"], fields["fields"])
+    svc().shop.set_category(pid, fields["category"])
     flash("تمت إضافة المنتج، وينفَّذ يدوياً." if fields["delivery"] == "manual" else "تمت إضافة المنتج. أضف أكواده الآن.")
     return redirect(url_for(".product", pid=pid), 303)
 
@@ -449,7 +477,7 @@ def _product(pid):
 def product(pid, error=None, code=200, form=None):
     item = _product(pid)
     return render_template("product.html", p=item, error=error, form=form, free=svc().shop.codes(pid, "free"),
-                           sold=svc().shop.codes(pid, "sold", 50)), code
+                           sold=svc().shop.codes(pid, "sold", 50), categories=svc().categories.all()), code
 
 
 @shop_admin.post("/products/<pid>")
@@ -460,6 +488,7 @@ def edit(pid):
         return product(pid, error, 400, request.form)
     svc().shop.update(pid, fields["name"], fields["description"], fields["note"], fields["price"], fields["active"],
                       fields["delivery"], fields["eta"], fields["fields"])
+    svc().shop.set_category(pid, fields["category"])
     flash("تم حفظ المنتج.")
     return redirect(url_for(".product", pid=pid), 303)
 
@@ -471,6 +500,11 @@ def add_codes(pid):
     text = f"تمت إضافة {added} كود." if added else "لم يُضف أي كود."
     if repeated:
         text += f" تُرك {repeated} لأنه موجود من قبل."
+    if added:
+        from restock import notify
+        asked = notify(svc(), pid)
+        if asked:
+            text += f" وأرسلنا إيميل «توفر المنتج» إلى {asked} من طلبوا التنبيه."
     flash(text, "info" if added else "error")
     return redirect(url_for(".product", pid=pid), 303)
 

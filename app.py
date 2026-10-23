@@ -113,6 +113,8 @@ def create_app(cfg=None, client=None):
     from customers import CustomerBook, book
     from legacy_flow import legacy
     from manual import manual_admin, steps_of
+    from categories import Categories, cat_images, cats_admin
+    from restock import restock
     from policies import policies
     from products import Shop, shop, shop_admin
     from twostep import LoginCodes, twostep
@@ -123,6 +125,7 @@ def create_app(cfg=None, client=None):
                                             book=CustomerBook(store.db, vault), brand=Brand(store.db),
                                             mailer=Mailer(cfg), codes=LoginCodes(store.db, cfg),
                                             shop=Shop(store.db, vault, store), broadcasts=Broadcasts(store.db),
+                                            categories=Categories(store.db),
                                             accounts=Accounts(store.db, vault, cfg))
     app.add_template_global(signed_in_customer, "customer_account")
     app.add_template_global(cart_count, "cart_count")
@@ -141,6 +144,9 @@ def create_app(cfg=None, client=None):
     app.register_blueprint(account)
     app.register_blueprint(cart)
     app.register_blueprint(manual_admin)
+    app.register_blueprint(cats_admin)
+    app.register_blueprint(cat_images)
+    app.register_blueprint(restock)
     if cfg.legacy:
         app.register_blueprint(legacy)
 
