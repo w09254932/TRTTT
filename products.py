@@ -96,7 +96,7 @@ class Shop:
                 "stock": stock, "held": held, "available": MANUAL_STOCK if manual else max(0, stock - held),
                 "sold": data.get("sold", 0), "created_at": data.get("created_at"),
                 "manual": manual, "eta": data.get("eta", ""), "fields": data.get("fields") or [],
-                "category": data.get("category", ""), "image": data.get("image_v", "")}
+                "category": data.get("category", "")}
 
     def get(self, pid):
         return self._view(self.products.document(pid).get()) if PID_RE.match(pid or "") else None
@@ -391,9 +391,7 @@ def store(cat=""):
     hand and by a search. A store with no categories lists its products on the front page."""
     from accounts import signed_in_customer
     from restock import waiting_for
-    from looks import LOOKS, current
     owner = signed_in(svc().cfg)
-    look, preview = current(owner)
     if not cat and request.args.get("cat"):          # links from before categories had pages of their own
         args = {k: v for k, v in request.args.items() if k != "cat"}
         return redirect(url_for(".store", cat=request.args["cat"], **args), 301)
@@ -425,9 +423,7 @@ def store(cat=""):
     asked = {p["id"] for p in shown if not p["available"] and waiting_for(p["id"], me)} if me else set()
     return render_template("shop.html", products=shown, brand=svc().brand.get(), owner=owner,
                            total=len(everything), cats=cats, counts=counts, both=both, cat=cat, kind=kind, q=q,
-                           asked=asked, shelved=shelved, look=look, preview=preview, looks=LOOKS,
-                           chosen=next((c for c in cats if c["id"] == cat), None),
-                           cat_by_id={c["id"]: c for c in svc().categories.all()})
+                           asked=asked, shelved=shelved, chosen=next((c for c in cats if c["id"] == cat), None))
 
 
 # Links from before the dashboard moved to /admin (owner emails, bookmarks).

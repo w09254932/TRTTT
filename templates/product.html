@@ -1,7 +1,5 @@
 {% extends "admin.html" %}
 {% block title %}{{ p.name }} | {{ store_name }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='looks.css') }}">
-<script src="{{ url_for('static', filename='shrink.js') }}" defer></script>{% endblock %}
 {% block main %}
 <section class="sheet">
   <p class="muted"><a href="{{ url_for('shop_admin.products') }}">المتجر</a></p>

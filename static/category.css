@@ -1,0 +1,18 @@
+/* A category's own page: its picture, name and count on top, and the way back to all categories. */
+.cat-head {
+  position: relative; display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: .8rem;
+  margin: 0 0 1rem; padding: .6rem; border-radius: 16px; border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+}
+.cat-head-pic { display: grid; place-items: center; width: 56px; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--panel-2); }
+.cat-head-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cat-head-pic span { font-weight: 700; font-size: 1.4rem; color: var(--accent-text); }
+.cat-head-text { min-width: 0; }
+.cat-head h2 { margin: 0; font-size: 1.15rem; line-height: 1.4; overflow-wrap: anywhere; }
+.cat-head small { color: var(--muted); font-size: .78rem; }
+.cat-back {
+  display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line);
+  color: var(--text); background: var(--panel);
+}
+.cat-back svg { width: 18px; height: 18px; }
+.cat-back:hover { border-color: var(--accent); color: var(--accent-text); }

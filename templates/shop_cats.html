@@ -1,8 +1,7 @@
-{#- The front page's categories with their pictures; each opens its own page. static/looks.js plays the look's move
-    before following a link. -#}
+{#- The front page's categories with their pictures; each opens its own page. -#}
 <nav class="cats" aria-label="التصنيفات" data-lenis-prevent>
   {% for c in cats %}
-  <a class="cat{{ ' on' if cat == c.id }}" href="{{ url_for('shop.store', cat=None if cat == c.id else c.id, kind=kind or None, look=preview) }}"{% if cat == c.id %} aria-current="page"{% else %} data-cat-go="{{ c.id }}"{% endif %} data-cat-name="{{ c.name }}">
+  <a class="cat{{ ' on' if cat == c.id }}" href="{{ url_for('shop.store', cat=None if cat == c.id else c.id, kind=kind or None) }}"{% if cat == c.id %} aria-current="page"{% endif %}>
     <span class="cat-pic">{% if c.image %}<img src="{{ url_for('cat_images.image', cid=c.id, v=c.version) }}" alt="" loading="lazy">{% else %}<span>{{ c.name[:1] }}</span>{% endif %}</span>
     <b dir="auto">{{ c.name }}</b><small>{{ counts.get(c.id, 0) }}</small></a>
   {% endfor %}

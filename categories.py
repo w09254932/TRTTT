@@ -108,9 +108,8 @@ def _counts():
 
 @cats_admin.get("/categories")
 def categories(error=None, code=200):
-    from looks import LOOKS
     return render_template("categories.html", rows=svc().categories.all(fresh=True), counts=_counts(),
-                           error=error, looks=LOOKS, look=svc().looks.get(fresh=True)), code
+                           error=error), code
 
 
 @cats_admin.post("/categories")

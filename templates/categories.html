@@ -1,7 +1,6 @@
 {% extends "admin.html" %}
 {% block title %}التصنيفات | {{ store_name }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='looks.css') }}">
-<script src="{{ url_for('static', filename='shrink.js') }}" defer></script>{% endblock %}
+{% block head %}<script src="{{ url_for('static', filename='shrink.js') }}" defer></script>{% endblock %}
 {% block main %}
 <section class="sheet">
   <p class="muted"><a href="{{ url_for('shop_admin.products') }}">المتجر</a></p>
@@ -16,20 +15,6 @@
       <input id="c-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" data-shrink="c-image-note">
       <span class="hint" id="c-image-note" aria-live="polite">تُصغَّر الصورة تلقائياً قبل الرفع.</span></p>
     <p class="wide"><button class="primary" type="submit">إضافة التصنيف</button></p>
-  </form>
-</section>
-<section class="sheet" id="look">
-  <h2>شكل عرض التصنيف</h2>
-  <p class="muted">ما يراه العميل بعد الضغط على تصنيف. جرّب كل شكل على المتجر نفسه (لا يراه العملاء)، ثم اعتمد الذي يعجبك.</p>
-  <form method="post" action="{{ url_for('looks_admin.save') }}" class="look-pick">
-    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-    {% for key, item in looks.items() %}
-    <div class="look-row">
-      <label class="check"><input type="radio" name="look" value="{{ key }}"{% if key == look %} checked{% endif %}> <span><b>{{ item[0] }}</b>{% if key == look %} <span class="chip paid">المعتمد</span>{% endif %}<br><small class="muted">{{ item[1] }}</small></span></label>
-      <a href="{{ url_for('shop.store', look=key) }}">جرّبه</a>
-    </div>
-    {% endfor %}
-    <p><button class="primary" type="submit">اعتمد الشكل المختار</button></p>
   </form>
 </section>
 <section class="sheet">
