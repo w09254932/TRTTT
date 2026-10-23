@@ -1,0 +1,42 @@
+{#- The store's messages and its product cards (shop.html); inside the open category for the «expand» look. -#}
+{% set open_ = products|rejectattr('id', 'in', shelved)|list %}
+  <p class="empty" id="no-match"{% if open_ or shelved or not total %} hidden{% endif %}>لا توجد منتجات تطابق اختيارك. <a href="{{ url_for('shop.store') }}">عرض المتجر</a></p>
+  <p class="pick-cat" id="pick-cat"{% if not shelved or open_ %} hidden{% endif %}>اختر تصنيفاً لتظهر منتجاته.</p>
+  {% if products %}
+  {#- Two vouchers to a row: what it is on top, its price and the buy button on the tear-off stub. -#}
+  <ul class="items">
+    {% for p in products %}
+    <li class="item{{ '' if p.available else ' out' }}" data-find="{{ (p.name ~ ' ' ~ p.description)|lower }}"{% if p.id in shelved %} data-shelved hidden{% endif %}>
+      {% if look == 'pictures' %}{% set pc = cat_by_id.get(p.category) %}
+      <div class="item-pic">{% if p.image %}<img src="{{ url_for('prod_images.image', pid=p.id, v=p.image) }}" alt="" loading="lazy">{% elif pc and pc.image %}<img src="{{ url_for('cat_images.image', cid=pc.id, v=pc.version) }}" alt="" loading="lazy">{% else %}<span>{{ p.name[:1] }}</span>{% endif %}</div>
+      {% endif %}
+      <div class="item-text">
+        <h2 dir="auto">{{ p.name }}</h2>
+        <button class="peek" type="button" data-peek="peek-{{ p.id }}" aria-haspopup="dialog" aria-label="تفاصيل {{ p.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        {% if p.description %}<p class="desc" dir="auto">{{ p.description }}</p>{% endif %}
+      </div>
+      <div class="item-buy">
+        {% if 0 < p.available <= 3 or p.sold or p.manual %}<p class="tags">
+          {%- if p.manual %}<span class="by-hand">{{ p.eta or 'تنفيذ يدوي' }}</span>{% endif -%}
+          {%- if 0 < p.available <= 3 and not p.manual %}<span class="few">باقي {{ p.available }}</span>{% endif -%}
+          {%- if p.sold %}<span class="sold">مباع {{ p.sold }}</span>{% endif -%}
+        </p>{% endif %}
+        <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
+        {% if p.available %}
+        <form method="post" action="{{ url_for('cart.add', pid=p.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="/">
+          <button class="primary" type="submit" aria-label="أضف {{ p.name }} إلى السلة">أضف للسلة</button>
+        </form>
+        {% elif p.id in asked %}
+        <p class="soldout asked">سنبلغك عند توفره</p>
+        {% else %}
+        <form method="post" action="{{ url_for('restock.ask', pid=p.id) }}">
+          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+          <button class="quiet notify" type="submit" aria-label="نبّهني حين يتوفر {{ p.name }}">نبّهني عند التوفر</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}

@@ -1,53 +1,32 @@
 {% extends "base.html" %}
 {% block title %}{{ store_name }}{% endblock %}
 {% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}
-<script src="{{ url_for('static', filename='shop.js') }}" defer></script>{% endblock %}
+<script src="{{ url_for('static', filename='shop.js') }}" defer></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='looks.css') }}">
+<script src="{{ url_for('static', filename='looks-early.js') }}"></script>
+<script src="{{ url_for('static', filename='looks.js') }}" defer></script>{% endblock %}
 {% block body %}
 {% include "topbar.html" %}
-<main class="shop">
+<main class="shop look-{{ look }}{{ ' in-cat' if chosen }}" data-look="{{ look }}"{% if chosen %} data-cat="{{ chosen.id }}"{% endif %}>
   <header class="shop-head">
     {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
     <h1 class="visually-hidden">{{ store_name }}</h1>
   </header>
   {% for kind_, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind_ == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
+  {% if owner and total %}{% include "shop_look_try.html" %}{% endif %}
   {% if total %}{% include "shop_filters.html" %}{% endif %}
-  {% set open_ = products|rejectattr('id', 'in', shelved)|list %}
-  <p class="empty" id="no-match"{% if open_ or shelved or not total %} hidden{% endif %}>لا توجد منتجات تطابق اختيارك. <a href="{{ url_for('shop.store') }}">عرض المتجر</a></p>
-  <p class="pick-cat" id="pick-cat"{% if not shelved or open_ %} hidden{% endif %}>اختر تصنيفاً لتظهر منتجاته.</p>
+  {% if chosen and look == 'expand' %}
+  {#- The «expand» look: the category opens across the page with its products inside, the others below it. -#}
+  <section class="cat-open" aria-labelledby="cat-name">
+    {% include "shop_cat_head.html" %}
+    {% include "shop_items.html" %}
+  </section>
+  {% if cats|length > 1 %}<p class="cats-more-label">تصنيفات أخرى</p>{% include "shop_cats.html" %}{% endif %}
+  {% else %}
+  {% if chosen and look != 'plain' %}{% include "shop_cat_head.html" %}{% endif %}
+  {% include "shop_items.html" %}
+  {% endif %}
   {% if products %}
-  {#- Two vouchers to a row: what it is on top, its price and the buy button on the tear-off stub. -#}
-  <ul class="items">
-    {% for p in products %}
-    <li class="item{{ '' if p.available else ' out' }}" data-find="{{ (p.name ~ ' ' ~ p.description)|lower }}"{% if p.id in shelved %} data-shelved hidden{% endif %}>
-      <div class="item-text">
-        <h2 dir="auto">{{ p.name }}</h2>
-        <button class="peek" type="button" data-peek="peek-{{ p.id }}" aria-haspopup="dialog" aria-label="تفاصيل {{ p.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
-        {% if p.description %}<p class="desc" dir="auto">{{ p.description }}</p>{% endif %}
-      </div>
-      <div class="item-buy">
-        {% if 0 < p.available <= 3 or p.sold or p.manual %}<p class="tags">
-          {%- if p.manual %}<span class="by-hand">{{ p.eta or 'تنفيذ يدوي' }}</span>{% endif -%}
-          {%- if 0 < p.available <= 3 and not p.manual %}<span class="few">باقي {{ p.available }}</span>{% endif -%}
-          {%- if p.sold %}<span class="sold">مباع {{ p.sold }}</span>{% endif -%}
-        </p>{% endif %}
-        <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
-        {% if p.available %}
-        <form method="post" action="{{ url_for('cart.add', pid=p.id) }}">
-          <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="back" value="/">
-          <button class="primary" type="submit" aria-label="أضف {{ p.name }} إلى السلة">أضف للسلة</button>
-        </form>
-        {% elif p.id in asked %}
-        <p class="soldout asked">سنبلغك عند توفره</p>
-        {% else %}
-        <form method="post" action="{{ url_for('restock.ask', pid=p.id) }}">
-          <input type="hidden" name="csrf" value="{{ csrf_token() }}">
-          <button class="quiet notify" type="submit" aria-label="نبّهني حين يتوفر {{ p.name }}">نبّهني عند التوفر</button>
-        </form>
-        {% endif %}
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
   {#- Each product's full details, opened from the eye on its card (static/shop.js). -#}
   {% for p in products %}
   <dialog class="peek-box" id="peek-{{ p.id }}" aria-labelledby="peek-{{ p.id }}-name" data-lenis-prevent>

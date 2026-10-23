@@ -1,25 +1,18 @@
 {#- Above the products: search as you type (static/shop.js; without script the form searches on the server),
-    instant or by-hand when the store has both, and the categories with their pictures. -#}
+    instant or by-hand when the store has both, and the categories with their pictures (shop_cats.html; the
+    «expand» look shows them under the open category instead). preview keeps a look the owner is trying. -#}
 <form class="finder" method="get" action="{{ url_for('shop.store') }}" role="search">
   {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
   {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
+  {% if preview %}<input type="hidden" name="look" value="{{ preview }}">{% endif %}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
   <input id="shop-q" name="q" type="search" maxlength="60" value="{{ q }}" placeholder="ابحث عن منتج" aria-label="ابحث عن منتج" autocomplete="off" data-find-input>
 </form>
 {% if both %}
 <nav class="kinds" aria-label="نوع التسليم">
-  <a href="{{ url_for('shop.store', cat=cat or None, q=q or None) }}"{% if not kind %} aria-current="page"{% endif %}>الكل</a>
-  <a href="{{ url_for('shop.store', kind='instant', cat=cat or None, q=q or None) }}"{% if kind == 'instant' %} aria-current="page"{% endif %}>فوري</a>
-  <a href="{{ url_for('shop.store', kind='manual', cat=cat or None, q=q or None) }}"{% if kind == 'manual' %} aria-current="page"{% endif %}>يدوي</a>
+  <a href="{{ url_for('shop.store', cat=cat or None, q=q or None, look=preview) }}"{% if not kind %} aria-current="page"{% endif %}>الكل</a>
+  <a href="{{ url_for('shop.store', kind='instant', cat=cat or None, q=q or None, look=preview) }}"{% if kind == 'instant' %} aria-current="page"{% endif %}>فوري</a>
+  <a href="{{ url_for('shop.store', kind='manual', cat=cat or None, q=q or None, look=preview) }}"{% if kind == 'manual' %} aria-current="page"{% endif %}>يدوي</a>
 </nav>
 {% endif %}
-{% if cats %}
-<nav class="cats" aria-label="التصنيفات" data-lenis-prevent>
-  {% for c in cats %}
-  {#- The chosen category, pressed again, goes back to the store's front. -#}
-  <a class="cat{{ ' on' if cat == c.id }}" href="{{ url_for('shop.store', cat=None if cat == c.id else c.id, kind=kind or None) }}"{% if cat == c.id %} aria-current="page"{% endif %}>
-    <span class="cat-pic">{% if c.image %}<img src="{{ url_for('cat_images.image', cid=c.id, v=c.version) }}" alt="" loading="lazy">{% else %}<span>{{ c.name[:1] }}</span>{% endif %}</span>
-    <b dir="auto">{{ c.name }}</b><small>{{ counts.get(c.id, 0) }}</small></a>
-  {% endfor %}
-</nav>
-{% endif %}
+{% if cats and not (look == 'expand' and chosen) %}{% include "shop_cats.html" %}{% endif %}

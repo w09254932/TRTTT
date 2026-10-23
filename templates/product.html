@@ -1,5 +1,7 @@
 {% extends "admin.html" %}
 {% block title %}{{ p.name }} | {{ store_name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='looks.css') }}">
+<script src="{{ url_for('static', filename='shrink.js') }}" defer></script>{% endblock %}
 {% block main %}
 <section class="sheet">
   <p class="muted"><a href="{{ url_for('shop_admin.products') }}">المتجر</a></p>
@@ -17,6 +19,25 @@
     {% endif %}
     <div><dt>بيع</dt><dd>{{ p.sold }}</dd></div>
   </dl>
+</section>
+<section class="sheet" id="picture">
+  <h2>صورة المنتج</h2>
+  <div class="pic-row">
+    <div class="cat-pic">{% if p.image %}<img src="{{ url_for('prod_images.image', pid=p.id, v=p.image) }}" alt="">{% else %}<span>{{ p.name[:1] }}</span>{% endif %}</div>
+    <form method="post" action="{{ url_for('looks_admin.picture', pid=p.id) }}" enctype="multipart/form-data" class="cat-edit">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <label for="p-image">{{ 'تغيير الصورة' if p.image else 'إضافة صورة' }} (PNG أو JPG أو WebP)</label>
+      <input id="p-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" required data-shrink="p-image-note">
+      <span class="hint" id="p-image-note" aria-live="polite">تظهر في شكل «شبكة بصور كبيرة». بدون صورة تظهر صورة تصنيفه.</span>
+      <button class="quiet" type="submit">حفظ الصورة</button>
+    </form>
+    {% if p.image %}
+    <form method="post" action="{{ url_for('looks_admin.picture', pid=p.id) }}" data-confirm="حذف صورة المنتج؟">
+      <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="remove" value="1">
+      <button class="plain" type="submit">حذف الصورة</button>
+    </form>
+    {% endif %}
+  </div>
 </section>
 {% if not p.manual or p.stock %}
 <section class="sheet" id="codes">

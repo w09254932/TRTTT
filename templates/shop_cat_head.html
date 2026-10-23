@@ -1,0 +1,7 @@
+{#- The open category: its picture, name and count, and the way back to all categories. The «zoom» look shows the
+    picture large (static/looks.js grows it from the tapped tile), the others as a band. -#}
+<header class="cat-head is-{{ look }}">
+  <div class="cat-head-pic">{% if chosen.image %}<img src="{{ url_for('cat_images.image', cid=chosen.id, v=chosen.version) }}" alt="">{% else %}<span>{{ chosen.name[:1] }}</span>{% endif %}</div>
+  <div class="cat-head-text"><h2 id="cat-name" dir="auto">{{ chosen.name }}</h2><small>{{ counts.get(chosen.id, 0) }} منتج</small></div>
+  <a class="cat-back" href="{{ url_for('shop.store', kind=kind or None, look=preview) }}" aria-label="رجوع إلى كل التصنيفات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></a>
+</header>

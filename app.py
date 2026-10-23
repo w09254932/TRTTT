@@ -115,6 +115,7 @@ def create_app(cfg=None, client=None):
     from manual import manual_admin, steps_of
     from categories import Categories, cat_images, cats_admin
     from restock import restock
+    from looks import Looks, Pictures, looks_admin, prod_images
     from policies import policies
     from products import Shop, shop, shop_admin
     from twostep import LoginCodes, twostep
@@ -126,6 +127,7 @@ def create_app(cfg=None, client=None):
                                             mailer=Mailer(cfg), codes=LoginCodes(store.db, cfg),
                                             shop=Shop(store.db, vault, store), broadcasts=Broadcasts(store.db),
                                             categories=Categories(store.db),
+                                            looks=Looks(store.db), pictures=Pictures(store.db),
                                             accounts=Accounts(store.db, vault, cfg))
     app.add_template_global(signed_in_customer, "customer_account")
     app.add_template_global(cart_count, "cart_count")
@@ -147,6 +149,8 @@ def create_app(cfg=None, client=None):
     app.register_blueprint(cats_admin)
     app.register_blueprint(cat_images)
     app.register_blueprint(restock)
+    app.register_blueprint(looks_admin)
+    app.register_blueprint(prod_images)
     if cfg.legacy:
         app.register_blueprint(legacy)
 

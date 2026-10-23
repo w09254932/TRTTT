@@ -1,0 +1,15 @@
+{#- Only the owner sees this: try each look on the store, then keep the one shown. -#}
+<aside class="look-try" aria-label="تجربة شكل عرض التصنيف">
+  <p>{% if preview %}تجرّب الآن: <b>{{ looks[preview][0] }}</b>{% else %}الشكل المعتمد: <b>{{ looks[look][0] }}</b>{% endif %}</p>
+  <nav>
+    {% for key, item in looks.items() %}<a href="{{ url_for('shop.store', cat=cat or None, kind=kind or None, look=key) }}"{% if key == look %} aria-current="true"{% endif %}>{{ item[0] }}</a>{% endfor %}
+  </nav>
+  {% if preview %}
+  <form method="post" action="{{ url_for('looks_admin.save') }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}"><input type="hidden" name="look" value="{{ preview }}">
+    <input type="hidden" name="back" value="store"><input type="hidden" name="cat" value="{{ cat }}">
+    <button class="primary" type="submit">اعتمد «{{ looks[preview][0] }}» للعملاء</button>
+  </form>
+  {% endif %}
+  <p class="hint">{% if cats %}اضغط على تصنيف لترى الحركة. العملاء لا يرون هذا الشريط.{% else %}أضف تصنيفاً بصورة لترى الأشكال.{% endif %}</p>
+</aside>
