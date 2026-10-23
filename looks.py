@@ -1,5 +1,5 @@
 """How the store shows a category once a customer taps it (the owner picks one of a few looks and can try each
-on the store before keeping it), and a picture for each product, used by the «big pictures» look. Pictures are
+on the store before keeping it), and a picture for each product (kept for later use; the cards do not show it). Pictures are
 kept in Firestore apart from the products, so listing the store never loads them, and are served from this site
 (the content security policy stays strict), like the category pictures."""
 import hashlib
@@ -11,11 +11,10 @@ from brand import image_type
 from security import signed_in, too_many
 
 LOOKS = {
-    "plain": ("العادي", "منتجات التصنيف تظهر تحت صف التصنيفات."),
-    "expand": ("البطاقة تتمدد عرضياً", "بطاقة التصنيف تتمدد لعرض الشاشة ومنتجاته داخلها، وبقية التصنيفات تحتها."),
+    "plain": ("العادي", "صفحة التصنيف تفتح مباشرة، ومنتجاته تطلع بالتتابع."),
+    "expand": ("البطاقة تتمدد عرضياً", "بطاقة التصنيف تتمدد لعرض الشاشة وتصير رأس صفحته، ومنتجاته تحتها."),
     "curtain": ("ستارة تنفتح", "ستارة تنغلق عند الضغط ثم تنفتح على منتجات التصنيف."),
     "zoom": ("تكبير من الصورة", "صورة التصنيف تكبر حتى تملأ الشاشة، ثم تستقر غلافاً أعلى منتجاته."),
-    "pictures": ("شبكة بصور كبيرة", "كل منتج ببطاقة عليها صورة كبيرة: صورة المنتج، أو صورة تصنيفه إن لم تكن له صورة."),
 }
 DEFAULT = "plain"
 MAX_IMAGE = 300 * 1024

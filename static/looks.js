@@ -117,7 +117,7 @@
         .to(full, { top: to.top, left: to.left, width: to.width, height: to.height, borderRadius: 20, duration: 0.75, ease: 'power3.inOut' })
         .fromTo(text, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.4, clearProps: 'transform' }, '-=0.15');
     } else {
-      var open = document.querySelector('.cat-open');
+      var open = document.querySelector('.cat-head');
       unmark();
       gsap.fromTo(open, { clipPath: 'inset(0% 0% 72% 68% round 20px)', autoAlpha: 1 },
         { clipPath: 'inset(0% 0% 0% 0% round 20px)', duration: 0.75, ease: 'power3.inOut', clearProps: 'clipPath' });

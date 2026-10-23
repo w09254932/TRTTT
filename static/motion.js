@@ -26,8 +26,8 @@
   if (animate === false) { return; }
 
   function show(targets, vars) {
-    return gsap.fromTo(targets, { autoAlpha: 0, y: vars.y || 16 },
-      { autoAlpha: 1, y: 0, duration: vars.duration || 0.55, stagger: vars.stagger || 0, ease: EASE,
+    return gsap.fromTo(targets, { autoAlpha: 0, y: vars.y || 16, scale: vars.scale || 1 },
+      { autoAlpha: 1, y: 0, scale: 1, duration: vars.duration || 0.55, stagger: vars.stagger || 0, ease: vars.ease || EASE,
         delay: vars.delay || 0, clearProps: 'transform' });
   }
 
@@ -74,11 +74,14 @@
         var all = gsap.utils.toArray('.item, .shop .contact, .owner-link, .fine');   // two cards to a row
         var now = all.filter(function (el) { return el.getBoundingClientRect().top < window.innerHeight; });
         var later = all.filter(function (el) { return now.indexOf(el) < 0; });
-        if (now.length) { show(now, { y: 24, duration: 0.55, stagger: 0.06 }); }
+        // On a category's page the cards rise in one after another, from a little smaller, with a soft bounce.
+        var rise = document.querySelector('main.in-cat') ?
+          { y: 46, scale: 0.92, duration: 0.7, stagger: 0.09, ease: 'back.out(1.5)' } : { y: 24, duration: 0.55, stagger: 0.06 };
+        if (now.length) { show(now, rise); }
         if (later.length) {
           ScrollTrigger.batch(later, {
             start: 'top bottom', once: true,
-            onEnter: function (batch) { show(batch, { y: 24, duration: 0.55, stagger: 0.06 }); },
+            onEnter: function (batch) { show(batch, rise); },
             onEnterBack: function (batch) { show(batch, { y: 0, duration: 0.3 }); }
           });
         }
