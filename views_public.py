@@ -9,6 +9,7 @@ from accounts import account_id, details_for_payment, signed_in_customer
 import legacy_flow
 from declines import specific
 from edfapay import GatewayError
+from gateway_details import checkout_items
 from notices import settle
 from policies import NOT_AGREED, VERSION, agreed
 from phones import clean_phone
@@ -105,8 +106,10 @@ def pay(token):
             svc().store.set_customer(inv["id"], linked)
     back = f"{svc().cfg.base_url}/p/{token}/done"
     try:
+        extra = {} if svc().gateway.legacy else {      # the API-key system also shows the order on its page
+            "items": checkout_items(inv), "title": inv["private"].get("title") or ""}
         checkout = svc().gateway.initiate(order_id, inv["amount"], customer, back + "?r=ok", back + "?r=fail",
-                                          payer_ip=client_ip())
+                                          payer_ip=client_ip(), **extra)
     except GatewayError as exc:
         current_app.logger.error("edfapay initiate failed for %s: %s", order_id, exc)
         return _page(inv, request.form, BUSY, 502)

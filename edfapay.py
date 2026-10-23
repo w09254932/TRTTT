@@ -5,10 +5,14 @@ import base64
 import binascii
 import hashlib
 import hmac
+import logging
 import re
 from urllib.parse import quote, urlparse
 
 import requests
+
+
+log = logging.getLogger(__name__)
 
 
 class GatewayError(Exception):
@@ -52,9 +56,10 @@ class EdfaPay:
                     raise
         return {}
 
-    def initiate(self, order_id, amount, customer, success_url, failure_url, payer_ip=None):
-        """Opens a checkout session and returns the URL the customer must be sent to."""
-        data = self._first("POST", INITIATE_PATHS, json={
+    def initiate(self, order_id, amount, customer, success_url, failure_url, payer_ip=None, items=None, title=""):
+        """Opens a checkout session and returns the URL the customer must be sent to. With `items` the checkout
+        page lists the order's products; if EdfaPay refuses that list, the payment opens without it."""
+        body = {
             "orderId": order_id,
             "currency": "SAR",
             "amount": amount,
@@ -62,7 +67,20 @@ class EdfaPay:
             "auth": "N",
             "successUrl": success_url,
             "failureUrl": failure_url,
-        })
+        }
+        extra = {}
+        if title:
+            extra["description"] = str(title)[:120]
+        if items:
+            extra["invoice"] = {"shippingCharges": 0, "extraCharges": 0, "extraDiscount": 0, "total": amount,
+                                "lineItems": items}
+        try:
+            data = self._first("POST", INITIATE_PATHS, json={**body, **extra})
+        except GatewayError as exc:
+            if not extra or exc.status != 400:
+                raise
+            log.warning("edfapay refused the order details (%s); opening the payment without them", exc)
+            data = self._first("POST", INITIATE_PATHS, json=body)
         url = str(data.get("redirectUrl") or "")
         parts = urlparse(url)
         host = parts.hostname or ""

@@ -9,6 +9,7 @@ from flask import Blueprint, abort, current_app, flash, redirect, render_templat
 import legacy_flow
 import notices
 from edfapay import GatewayError
+from gateway_details import describe
 from mailer import hint
 from phones import clean_phone
 from security import check_csrf, check_owner, ip_key, sign_in, signed_in, too_many
@@ -166,10 +167,19 @@ def invoice(inv_id):
     phone = inv["private"].get("phone", "").lstrip("+")
     product = svc().shop.get(inv["product"]) if inv.get("product") else None
     missing = svc().shop.missing(inv) if inv.get("product") and inv["status"] == "paid" else 0
+    details = None
+    if request.args.get("details") and inv.get("txn") and not svc().gateway.legacy:
+        # Asked for from the invoice page: EdfaPay's own record of the last transaction, read live, kept nowhere.
+        try:
+            record = svc().gateway.status(inv["txn"])
+            details = describe(record) if record else []
+        except GatewayError as exc:
+            current_app.logger.error("edfapay details failed for %s: %s", inv_id, exc)
+            details = []
     return render_template("invoice.html", inv=inv, link=link, events=svc().store.events_for(inv_id),
                            whatsapp=f"https://wa.me/{phone}?text={text}", goods=svc().store.goods(inv),
                            mailing=svc().mailer.ready, delivery=inv.get("delivery") or {}, product=product,
-                           missing=missing)
+                           missing=missing, details=details, legacy=svc().gateway.legacy)
 
 
 @admin.post("/invoices/<inv_id>/goods")

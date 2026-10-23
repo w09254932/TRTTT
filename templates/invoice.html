@@ -34,7 +34,9 @@
     {% if inv.last_error %}<div><dt>آخر رفض</dt><dd>{{ inv.last_error|why }}{% if inv.last_error not in inv.last_error|why %}<br><bdi class="muted">{{ inv.last_error }}</bdi>{% endif %}</dd></div>{% endif %}
   </dl>
   <div class="actions">
-    {% if inv.txn or inv.checkout %}
+    {% if inv.txn and not legacy %}
+    <a class="quiet" href="{{ url_for('admin.invoice', inv_id=inv.id, details=1) }}#gateway">تفاصيل الدفعة من EdfaPay</a>
+    {% elif inv.txn or inv.checkout %}
     <form method="post" action="{{ url_for('admin.check', inv_id=inv.id) }}">
       <input type="hidden" name="csrf" value="{{ csrf_token() }}">
       <button class="quiet" type="submit">استعلام من البوابة</button>
@@ -48,6 +50,20 @@
     {% endif %}
   </div>
 </section>
+{% if details is not none %}
+<section class="sheet" id="gateway">
+  <h2>تفاصيل الدفعة من EdfaPay</h2>
+  {% if details %}
+  <p class="muted">كما تسجّلها EdfaPay الآن لآخر عملية على هذه الفاتورة.</p>
+  <dl class="facts">
+    {% for label, value, raw in details %}<div><dt>{{ label }}</dt><dd><bdi>{{ value }}</bdi>{% if raw %} <small class="muted"><bdi>{{ raw }}</bdi></small>{% endif %}</dd></div>
+    {% endfor %}
+  </dl>
+  {% else %}
+  <p class="alert">لم يصل رد من EdfaPay عن هذه العملية الآن. حاول بعد قليل.</p>
+  {% endif %}
+</section>
+{% endif %}
 <section class="sheet" id="order">
   <h2>الطلب الذي يُرسل للعميل بالإيميل</h2>
   {% if not mailing %}<p class="alert">الإيميل غير مُعدّ، فلن يُرسل شيء. تجد المطلوب في صفحة الإعدادات.</p>{% endif %}
