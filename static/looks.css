@@ -43,7 +43,6 @@
 .cat-open .cat-head { grid-template-columns: 72px 1fr auto; margin: 0 0 .8rem; padding: .1rem; border: 0; background: none; }
 .cat-open .cat-head-pic { width: 72px; box-shadow: 0 0 0 2px var(--accent); }
 .cat-open .items { gap: .5rem; }
-.cats-more-label { margin: 0 0 .5rem; color: var(--muted); font-size: .85rem; font-weight: 600; }
 
 /* «big pictures»: each card starts with its picture */
 .item-pic { display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; background: var(--panel-2); border-bottom: 1px solid var(--line); }

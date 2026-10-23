@@ -14,16 +14,16 @@
   </header>
   {% for kind_, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind_ == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
   {% if owner and total %}{% include "shop_look_try.html" %}{% endif %}
+  {#- A category's page is its own: its name on top, then only its products, without the other categories. -#}
+  {% if chosen and look != 'expand' %}{% include "shop_cat_head.html" %}{% endif %}
   {% if total %}{% include "shop_filters.html" %}{% endif %}
   {% if chosen and look == 'expand' %}
-  {#- The «expand» look: the category opens across the page with its products inside, the others below it. -#}
+  {#- The «expand» look: the category opens as one wide card with its products inside. -#}
   <section class="cat-open" aria-labelledby="cat-name">
     {% include "shop_cat_head.html" %}
     {% include "shop_items.html" %}
   </section>
-  {% if cats|length > 1 %}<p class="cats-more-label">تصنيفات أخرى</p>{% include "shop_cats.html" %}{% endif %}
   {% else %}
-  {% if chosen and look != 'plain' %}{% include "shop_cat_head.html" %}{% endif %}
   {% include "shop_items.html" %}
   {% endif %}
   {% if products %}

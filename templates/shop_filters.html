@@ -1,11 +1,11 @@
 {#- Above the products: search as you type (static/shop.js; without script the form searches on the server),
-    instant or by-hand when the store has both, and the categories with their pictures (shop_cats.html; the
-    «expand» look shows them under the open category instead). preview keeps a look the owner is trying. -#}
+    instant or by-hand when the store has both, and on the front page the categories with their pictures
+    (shop_cats.html); a category's page searches its own products. preview keeps a look the owner is trying. -#}
 <form class="finder" method="get" action="{{ url_for('shop.store', cat=cat or None) }}" role="search">
   {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
   {% if preview %}<input type="hidden" name="look" value="{{ preview }}">{% endif %}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-  <input id="shop-q" name="q" type="search" maxlength="60" value="{{ q }}" placeholder="ابحث عن منتج" aria-label="ابحث عن منتج" autocomplete="off" data-find-input>
+  <input id="shop-q" name="q" type="search" maxlength="60" value="{{ q }}" placeholder="{{ 'ابحث في ' ~ chosen.name if chosen else 'ابحث عن منتج' }}" aria-label="{{ 'ابحث في ' ~ chosen.name if chosen else 'ابحث عن منتج' }}" autocomplete="off" data-find-input>
 </form>
 {% if both %}
 <nav class="kinds" aria-label="نوع التسليم">
@@ -14,4 +14,4 @@
   <a href="{{ url_for('shop.store', kind='manual', cat=cat or None, q=q or None, look=preview) }}"{% if kind == 'manual' %} aria-current="page"{% endif %}>يدوي</a>
 </nav>
 {% endif %}
-{% if cats and not (look == 'expand' and chosen) %}{% include "shop_cats.html" %}{% endif %}
+{% if cats and not chosen %}{% include "shop_cats.html" %}{% endif %}
