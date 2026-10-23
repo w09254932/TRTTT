@@ -7,17 +7,18 @@
 <main class="shop">
   <header class="shop-head">
     {% if brand.logo %}<img class="logo" src="{{ url_for('brand.logo', v=brand.version) }}" alt="">{% endif %}
-    <h1>{{ store_name }}</h1>
-    <p>اختر المنتج وادفع بالبطاقة، ويصلك الكود على بريدك لحظة تأكيد الدفع.</p>
+    <h1 class="visually-hidden">{{ store_name }}</h1>
   </header>
   {% for kind_, message in get_flashed_messages(with_categories=true) %}<p class="{{ 'alert' if kind_ == 'error' else 'note' }}" role="status">{{ message }}</p>{% endfor %}
   {% if total %}{% include "shop_filters.html" %}{% endif %}
-  <p class="empty" id="no-match"{% if products or not total %} hidden{% endif %}>لا توجد منتجات تطابق اختيارك. <a href="{{ url_for('shop.store') }}">عرض الكل</a></p>
+  {% set open_ = products|rejectattr('id', 'in', shelved)|list %}
+  <p class="empty" id="no-match"{% if open_ or shelved or not total %} hidden{% endif %}>لا توجد منتجات تطابق اختيارك. <a href="{{ url_for('shop.store') }}">عرض المتجر</a></p>
+  <p class="pick-cat" id="pick-cat"{% if not shelved or open_ %} hidden{% endif %}>اختر تصنيفاً لتظهر منتجاته.</p>
   {% if products %}
   {#- Two vouchers to a row: what it is on top, its price and the buy button on the tear-off stub. -#}
   <ul class="items">
     {% for p in products %}
-    <li class="item{{ '' if p.available else ' out' }}" data-find="{{ (p.name ~ ' ' ~ p.description)|lower }}">
+    <li class="item{{ '' if p.available else ' out' }}" data-find="{{ (p.name ~ ' ' ~ p.description)|lower }}"{% if p.id in shelved %} data-shelved hidden{% endif %}>
       <div class="item-text">
         <h2 dir="auto">{{ p.name }}</h2>
         <button class="peek" type="button" data-peek="peek-{{ p.id }}" aria-haspopup="dialog" aria-label="تفاصيل {{ p.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>

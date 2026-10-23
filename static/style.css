@@ -488,6 +488,8 @@ input[readonly] { cursor: default; }
 .peek-buy { display: grid; gap: .5rem; }
 /* the store's search, instant or by hand, and the categories with their pictures */
 .item[hidden] { display: none; }
+.pick-cat { text-align: center; color: var(--muted); margin: .4rem 0 1rem; }
+.shop-head:not(:has(img)) { margin: 0; }
 .finder { position: relative; margin: 0 0 .8rem; }
 .finder svg { position: absolute; inset-inline-start: .85rem; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .finder input { padding-inline-start: 2.6rem; border-radius: 999px; }

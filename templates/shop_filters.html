@@ -3,9 +3,8 @@
 <form class="finder" method="get" action="{{ url_for('shop.store') }}" role="search">
   {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
   {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
-  <label class="visually-hidden" for="shop-q">ابحث في المتجر</label>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-  <input id="shop-q" name="q" type="search" maxlength="60" value="{{ q }}" placeholder="ابحث عن منتج" autocomplete="off" data-find-input>
+  <input id="shop-q" name="q" type="search" maxlength="60" value="{{ q }}" placeholder="ابحث عن منتج" aria-label="ابحث عن منتج" autocomplete="off" data-find-input>
 </form>
 {% if both %}
 <nav class="kinds" aria-label="نوع التسليم">
@@ -16,10 +15,9 @@
 {% endif %}
 {% if cats %}
 <nav class="cats" aria-label="التصنيفات" data-lenis-prevent>
-  <a class="cat{{ ' on' if not cat }}" href="{{ url_for('shop.store', kind=kind or None) }}"{% if not cat %} aria-current="page"{% endif %}>
-    <span class="cat-pic"><span>الكل</span></span><b>الكل</b><small>{{ total }}</small></a>
   {% for c in cats %}
-  <a class="cat{{ ' on' if cat == c.id }}" href="{{ url_for('shop.store', cat=c.id, kind=kind or None) }}"{% if cat == c.id %} aria-current="page"{% endif %}>
+  {#- The chosen category, pressed again, goes back to the store's front. -#}
+  <a class="cat{{ ' on' if cat == c.id }}" href="{{ url_for('shop.store', cat=None if cat == c.id else c.id, kind=kind or None) }}"{% if cat == c.id %} aria-current="page"{% endif %}>
     <span class="cat-pic">{% if c.image %}<img src="{{ url_for('cat_images.image', cid=c.id, v=c.version) }}" alt="" loading="lazy">{% else %}<span>{{ c.name[:1] }}</span>{% endif %}</span>
     <b dir="auto">{{ c.name }}</b><small>{{ counts.get(c.id, 0) }}</small></a>
   {% endfor %}

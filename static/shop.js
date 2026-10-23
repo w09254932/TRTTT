@@ -9,17 +9,21 @@
   // still searches on the server (and works without script).
   var find = document.querySelector('[data-find-input]');
   var none = document.getElementById('no-match');
+  var pick = document.getElementById('pick-cat');
   if (find) {
     var cards = Array.prototype.slice.call(document.querySelectorAll('.item[data-find]'));
+    var pickFirst = pick ? pick.hidden : true;
     var apply = function () {
       var words = find.value.toLowerCase().split(/\s+/).filter(Boolean), left = 0;
       cards.forEach(function (card) {
         var text = card.getAttribute('data-find');
-        var hit = words.every(function (w) { return text.indexOf(w) !== -1; });
+        // with nothing typed, products inside a category wait for their category again
+        var hit = words.length ? words.every(function (w) { return text.indexOf(w) !== -1; }) : card.hasAttribute('data-shelved') === false;
         card.hidden = hit === false;
         if (hit) { left += 1; }
       });
-      if (none) { none.hidden = left > 0 || cards.length === 0; }
+      if (pick) { pick.hidden = words.length ? true : pickFirst; }
+      if (none) { none.hidden = left > 0 || cards.length === 0 || words.length === 0; }
     };
     find.addEventListener('input', apply);
     find.form.addEventListener('submit', function (event) {

@@ -65,7 +65,10 @@
     if (logo) { tl.fromTo(logo, { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.5, clearProps: 'transform' }); }
     tl.set(title, { autoAlpha: 1 })
       .fromTo(words, { autoAlpha: 0, y: 22 }, { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.09, clearProps: 'transform' })
-      .fromTo(head.querySelectorAll('p'), { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.5, clearProps: 'transform' }, '-=0.35')
+      .add(function () {      // the line under the name, when the store has one
+        var lines = head.querySelectorAll('p');
+        if (lines.length) { gsap.fromTo(lines, { autoAlpha: 0, y: 10 }, { autoAlpha: 1, y: 0, duration: 0.5, clearProps: 'transform' }); }
+      }, '-=0.35')
       .add(function () {
         // What is on screen, or above it after a back or a reload, comes in now; the rest as it scrolls in.
         var all = gsap.utils.toArray('.item, .shop .contact, .owner-link, .fine');   // two cards to a row

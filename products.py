@@ -399,11 +399,14 @@ def store():
     shown = [p for p in everything
              if (not cat or p["category"] == cat) and (not kind or p["manual"] == (kind == "manual"))
              and (not q or q.lower() in f"{p['name']} {p['description']}".lower())]
+    # With categories, the store opens on them: a product inside a category waits until its category is chosen
+    # (or a search finds it); products without a category show as before.
+    shelved = {p["id"] for p in shown if p["category"] in counts and cats} if cats and not cat and not q else set()
     me = signed_in_customer()
     asked = {p["id"] for p in shown if not p["available"] and waiting_for(p["id"], me)} if me else set()
     return render_template("shop.html", products=shown, brand=svc().brand.get(), owner=signed_in(svc().cfg),
                            total=len(everything), cats=cats, counts=counts, both=both, cat=cat, kind=kind, q=q,
-                           asked=asked)
+                           asked=asked, shelved=shelved)
 
 
 # Links from before the dashboard moved to /admin (owner emails, bookmarks).
