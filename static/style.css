@@ -496,12 +496,13 @@ input[readonly] { cursor: default; }
 .kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: .3rem; padding: .3rem; margin: 0 0 .9rem; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; }
 .kinds a { text-align: center; padding: .45rem .5rem; border-radius: 999px; color: var(--muted); font-weight: 600; text-decoration: none; }
 .kinds a[aria-current] { background: var(--accent); color: var(--on-accent); }
-.cats { display: grid; grid-auto-flow: column; grid-auto-columns: 84px; gap: .5rem; margin: 0 0 1.1rem; padding-bottom: .3rem;
-  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; }
+.cats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin: 0 0 1.1rem; }   /* three to a row */
 .cats::-webkit-scrollbar { display: none; }
-.cat { scroll-snap-align: start; display: grid; justify-items: center; gap: .25rem; padding: .5rem .3rem .45rem; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-decoration: none; text-align: center; min-width: 0; }
+.cat { display: grid; justify-items: center; gap: .25rem; padding: .5rem .3rem .45rem; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-decoration: none; text-align: center; min-width: 0; }
 .cat.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 .cat .cat-pic, .cat-admin .cat-pic { display: grid; place-items: center; width: 100%; aspect-ratio: 1; max-width: 72px; border-radius: 12px; overflow: hidden; background: var(--panel-2); }
+.cat .cat-pic { max-width: none; }
+.cat .cat-pic span { font-size: 1.6rem; }
 .cat-pic img { width: 100%; height: 100%; object-fit: cover; }
 .cat-pic span { font-weight: 700; color: var(--accent-text); font-size: 1.05rem; }
 .cat b { font-size: .78rem; line-height: 1.35; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
