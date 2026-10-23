@@ -124,6 +124,9 @@ def checkout():
     gift, error = _gift(me)
     rows = _lines()
     answers = {}
+    if gift and any(product["manual"] for product, _ in rows):
+        # A product done by hand is carried out on the details typed here, so it is never sent as a gift.
+        error = "الهدية للأكواد الفورية فقط. المنتج اليدوي يُنفّذ على البيانات التي تكتبها، فأكمل الطلب لنفسك."
     for product, _ in rows:      # what each product done by hand needs from the customer
         if product["manual"] and not error:
             answers[product["id"]], error = read_fields(request.form, product)

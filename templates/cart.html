@@ -47,6 +47,11 @@
         <p class="hint">تأكد منها جيداً، فالمتجر ينفّذ طلبك عليها كما كتبتها.</p>
       </fieldset>
       {% endfor %}
+      {% set handmade = rows|selectattr('0.manual')|list %}
+      {% if handmade %}
+      {#- A product done by hand is carried out on what the buyer types: bought for themselves only. -#}
+      <input type="hidden" name="for" value="me">
+      {% else %}
       {#- Two choices; the chosen one shows its own part (static/style.css, no script needed). -#}
       <input class="visually-hidden" type="radio" name="for" value="me" id="for-me"{% if form.get('for') != 'gift' %} checked{% endif %}>
       <input class="visually-hidden" type="radio" name="for" value="gift" id="for-gift"{% if form.get('for') == 'gift' %} checked{% endif %}>
@@ -54,11 +59,13 @@
         <label for="for-me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>شراء لنفسي</label>
         <label for="for-gift"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8c-1.5-3-5-3.5-5-1.2C7 8 9.5 8 12 8zm0 0c1.5-3 5-3.5 5-1.2C17 8 14.5 8 12 8z"/></svg>هدية لصديق</label>
       </div>
+      {% endif %}
       <div class="for-me"><dl>
         <div><dt>الاسم</dt><dd>{{ me.name }}</dd></div>
         <div><dt>الجوال</dt><dd><bdi>{{ me.phone|phone }}</bdi></dd></div>
         <div><dt>البريد</dt><dd><bdi>{{ me.email }}</bdi></dd></div>
-      </dl><p class="hint">{% if rows|selectattr('0.manual')|list %}يصلك طلبك على بريدك فور تأكيد الدفع، ثم إشعار حين يُنفّذ.{% else %}تصل الأكواد إلى بريدك فور تأكيد الدفع.{% endif %}</p></div>
+      </dl><p class="hint">{% if handmade %}يصلك طلبك على بريدك فور تأكيد الدفع، ثم إشعار حين يُنفّذ. الطلب اليدوي لا يُرسل هدية لأنه يُنفّذ على البيانات التي تكتبها.{% else %}تصل الأكواد إلى بريدك فور تأكيد الدفع.{% endif %}</p></div>
+      {% if not handmade %}
       <div class="for-gift">
         <label for="gift-email">بريد صديقك</label>
         <input id="gift-email" name="gift_email" type="email" dir="ltr" maxlength="120" value="{{ form.gift_email or '' }}" placeholder="friend@example.com">
@@ -66,6 +73,7 @@
         <input id="gift-note" name="gift_note" maxlength="200" dir="auto" value="{{ form.gift_note or '' }}" placeholder="كل عام وأنت بخير">
         <p class="hint">تصل الأكواد إلى بريد صديقك وحده مع اسمك ورسالتك، ولا تظهر لك. ويصلك إشعار حين تصله الهدية.</p>
       </div>
+      {% endif %}
       <button class="primary" type="submit">إتمام الطلب والدفع</button>
     </form>
     {% elif me %}
