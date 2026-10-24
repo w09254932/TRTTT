@@ -513,6 +513,7 @@ input[readonly] { cursor: default; }
 .cat-admin { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; }
 .cat-admin li { display: grid; grid-template-columns: 72px 1fr; gap: .4rem .9rem; padding: .8rem; border: 1px solid var(--line); border-radius: 14px; background: var(--field); }
 .cat-admin li > form:last-child { grid-column: 2; }
+.pic-row { display: grid; grid-template-columns: 72px 1fr; gap: .4rem .9rem; margin-bottom: .5rem; }
 .cat-edit { display: grid; gap: .3rem; min-width: 0; }
 .peek-buy form { margin: 0; }
 .peek-buy button { width: 100%; }

@@ -3,6 +3,7 @@
 {% block head %}{% if brand.custom %}<link rel="stylesheet" href="{{ url_for('brand.theme', v=brand.version) }}">{% endif %}
 <script src="{{ url_for('static', filename='shop.js') }}" defer></script>
 <link rel="stylesheet" href="{{ url_for('static', filename='category.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='cards.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='vt-open.css' if chosen else 'vt-close.css') }}">{% endblock %}
 {% block body %}
 {% include "topbar.html" %}

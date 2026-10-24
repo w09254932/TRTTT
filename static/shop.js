@@ -46,6 +46,27 @@
     }
   });
 
+  // Each card takes the colour of its picture: the picture drawn small, its colours averaged. A card whose picture
+  // cannot be read keeps the store's own colour.
+  function tint(img) {
+    try {
+      var canvas = document.createElement('canvas');
+      canvas.width = 8; canvas.height = 8;
+      var pen = canvas.getContext('2d');
+      pen.drawImage(img, 0, 0, 8, 8);
+      var dots = pen.getImageData(0, 0, 8, 8).data, r = 0, g = 0, b = 0, count = 0;
+      for (var i = 0; i < dots.length; i += 4) {
+        if (dots[i + 3] > 127) { r += dots[i]; g += dots[i + 1]; b += dots[i + 2]; count += 1; }
+      }
+      if (count > 0) {
+        img.closest('.item').style.setProperty('--tc', 'rgb(' + Math.round(r / count) + ',' + Math.round(g / count) + ',' + Math.round(b / count) + ')');
+      }
+    } catch (e) { /* the store's colour stays */ }
+  }
+  document.querySelectorAll('img[data-tint]').forEach(function (img) {
+    if (img.complete && img.naturalWidth > 0) { tint(img); } else { img.addEventListener('load', function () { tint(img); }); }
+  });
+
   document.querySelectorAll('[data-peek]').forEach(function (button) {
     var box = document.getElementById(button.getAttribute('data-peek'));
     if (box === null || typeof box.showModal !== 'function') { button.hidden = true; return; }

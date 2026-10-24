@@ -1,0 +1,33 @@
+/* The product cards (templates/shop_items.html): two to a row, each in the colour of its picture (static/shop.js
+   sets --tc; the store's colour until then), the picture inset on top, a thin bar with instant or by hand, how many
+   sold and how many left, then the name, the price and the button. */
+.cards .item {
+  --tc: var(--accent);
+  border: 0; border-radius: 16px; color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 52%, #0b0818), color-mix(in srgb, var(--tc) 16%, #0b0818));
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .28);
+}
+.cards .item-pic { position: relative; margin: .45rem .45rem 0; aspect-ratio: 16 / 11; border-radius: 11px; overflow: hidden; background: rgba(0, 0, 0, .25); display: grid; place-items: center; }
+.cards .item-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cards .item-pic > span { font-size: 2rem; font-weight: 700; color: rgba(255, 255, 255, .85); }
+.cards .best { position: absolute; top: .35rem; left: .35rem; padding: .05rem .45rem; border-radius: 99px; font-style: normal; font-size: .6rem; font-weight: 700; color: #2b1b04; background: linear-gradient(90deg, #ffd66b, #f3b13c); box-shadow: 0 2px 8px rgba(0, 0, 0, .35); }
+.cards .peek { top: .35rem; right: .35rem; left: auto; width: 26px; height: 26px; color: #fff; background: rgba(8, 6, 20, .55); border-color: rgba(255, 255, 255, .25); backdrop-filter: blur(3px); }
+.cards .item-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: .4rem .45rem 0; border-radius: 8px; overflow: hidden; background: rgba(0, 0, 0, .22); }
+.cards .item-bar span { padding: .12rem .15rem; text-align: center; font-size: .58rem; line-height: 1.5; color: rgba(255, 255, 255, .78); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-inline-start: 1px solid rgba(255, 255, 255, .1); }
+.cards .item-bar span:first-child { border: 0; font-weight: 700; }
+.cards .item-bar .instant { color: #8ff0c8; } .cards .item-bar .by-hand { color: #cdb8ff; }
+.cards .item-bar .few { color: #ffb0b8; font-weight: 700; } .cards .item-bar .gone { color: rgba(255, 255, 255, .55); }
+.cards .item-text { padding: .45rem .6rem .15rem; }
+.cards .item-text h2 { padding-left: 0; color: #fff; font-size: .86rem; }
+.cards .item-buy { gap: .4rem; padding: .3rem .6rem .6rem; border-top: 0; }
+.cards .item-buy::before, .cards .item-buy::after { display: none; }
+.cards .price { color: rgba(255, 255, 255, .75); }
+.cards .price b { color: #fff; }
+.cards .item-buy .primary { background: #fff; border-color: #fff; color: #1a1004; box-shadow: 0 6px 14px rgba(0, 0, 0, .25); }
+.cards .item.out { filter: saturate(.4); }
+.cards .item.out h2, .cards .item.out .price b { color: rgba(255, 255, 255, .7); }
+.cards .notify, .cards .soldout { color: #fff; background: rgba(0, 0, 0, .25); border-color: rgba(255, 255, 255, .2); }
+@media (min-width: 640px) {
+  .cards .item-bar span { font-size: .66rem; padding: .18rem .2rem; }
+  .cards .item-text h2 { font-size: 1rem; }
+}

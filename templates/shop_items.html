@@ -3,21 +3,31 @@
   <p class="empty" id="no-match"{% if open_ or shelved or not total %} hidden{% endif %}>لا توجد منتجات تطابق اختيارك. <a href="{{ url_for('shop.store') }}">عرض المتجر</a></p>
   <p class="pick-cat" id="pick-cat"{% if not shelved or open_ %} hidden{% endif %}>اختر تصنيفاً لتظهر منتجاته.</p>
   {% if products %}
-  {#- Two vouchers to a row: what it is on top, its price and the buy button on the tear-off stub. -#}
-  <ul class="items">
-    {% for p in products %}
+  {#- Two cards to a row, each in the colour of its picture (static/shop.js reads it): the picture (the product's own,
+      else its category's) with «best seller» on the most sold one, a thin bar with instant or by hand, how many sold
+      and how many are left (or how long by hand), then the name, the price and the button. -#}
+  <ul class="items cards">
+    {% for p in products %}{% set pc = cat_by_id.get(p.category) %}
     <li class="item{{ '' if p.available else ' out' }}" data-find="{{ (p.name ~ ' ' ~ p.description)|lower }}"{% if p.id in shelved %} data-shelved hidden{% endif %}>
+      <div class="item-pic">
+        {%- if p.image %}<img src="{{ url_for('prod_images.image', pid=p.id, v=p.image) }}" alt="" loading="lazy" data-tint>
+        {%- elif pc and pc.image %}<img src="{{ url_for('cat_images.image', cid=pc.id, v=pc.version) }}" alt="" loading="lazy" data-tint>
+        {%- else %}<span aria-hidden="true">{{ p.name[:1] }}</span>{% endif -%}
+        {% if p.id == best_id %}<i class="best">الأكثر مبيعاً</i>{% endif %}
+        <button class="peek" type="button" data-peek="peek-{{ p.id }}" aria-haspopup="dialog" aria-label="تفاصيل {{ p.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <p class="item-bar">
+        <span class="{{ 'by-hand' if p.manual else 'instant' }}">{{ '✋ يدوي' if p.manual else '⚡ فوري' }}</span>
+        <span>{% if p.sold %}🔥 {{ p.sold }}{% else %}جديد{% endif %}</span>
+        {% if p.manual %}<span class="by-hand">⏱ {{ p.eta or 'يدوي' }}</span>
+        {%- elif not p.available %}<span class="gone">نفد</span>
+        {%- elif p.available <= 3 %}<span class="few">باقي {{ p.available }}</span>
+        {%- else %}<span>متوفر</span>{% endif %}
+      </p>
       <div class="item-text">
         <h2 dir="auto">{{ p.name }}</h2>
-        <button class="peek" type="button" data-peek="peek-{{ p.id }}" aria-haspopup="dialog" aria-label="تفاصيل {{ p.name }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
-        {% if p.description %}<p class="desc" dir="auto">{{ p.description }}</p>{% endif %}
       </div>
       <div class="item-buy">
-        {% if 0 < p.available <= 3 or p.sold or p.manual %}<p class="tags">
-          {%- if p.manual %}<span class="by-hand">{{ p.eta or 'تنفيذ يدوي' }}</span>{% endif -%}
-          {%- if 0 < p.available <= 3 and not p.manual %}<span class="few">باقي {{ p.available }}</span>{% endif -%}
-          {%- if p.sold %}<span class="sold">مباع {{ p.sold }}</span>{% endif -%}
-        </p>{% endif %}
         <p class="price"><b>{{ p.price|money }}</b> ر.س</p>
         {% if p.available %}
         <form method="post" action="{{ url_for('cart.add', pid=p.id) }}">

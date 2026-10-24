@@ -96,7 +96,7 @@ class Shop:
                 "stock": stock, "held": held, "available": MANUAL_STOCK if manual else max(0, stock - held),
                 "sold": data.get("sold", 0), "created_at": data.get("created_at"),
                 "manual": manual, "eta": data.get("eta", ""), "fields": data.get("fields") or [],
-                "category": data.get("category", "")}
+                "category": data.get("category", ""), "image": data.get("image_v", "")}
 
     def get(self, pid):
         return self._view(self.products.document(pid).get()) if PID_RE.match(pid or "") else None
@@ -431,12 +431,15 @@ def store(cat=""):
     # With categories, the front page shows only them: every product waits on its category's page. They stay in
     # the page, hidden, so typing in the search finds them at once, whichever tab is open.
     shelved = {p["id"] for p in shown} if every_cat and not cat and not q else set()
+    best = max((p for p in shown if p["id"] not in shelved), key=lambda p: p["sold"], default=None)   # «best seller»
     me = signed_in_customer()
     asked = {p["id"] for p in shown if not p["available"] and waiting_for(p["id"], me)} if me else set()
     return render_template("shop.html", products=shown, brand=svc().brand.get(), owner=owner,
                            total=len(everything), cats=cats, counts=counts, both=both, cat=cat, kind=kind, q=q,
                            kind_arg=kind if kind == "manual" else None, asked=asked, shelved=shelved,
-                           chosen=next((c for c in cats if c["id"] == cat), None))
+                           chosen=next((c for c in cats if c["id"] == cat), None),
+                           best_id=best["id"] if best and best["sold"] else None,
+                           cat_by_id={c["id"]: c for c in svc().categories.all()})
 
 
 # Links from before the dashboard moved to /admin (owner emails, bookmarks).
