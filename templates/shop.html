@@ -18,13 +18,19 @@
   {% if total %}{% include "shop_filters.html" %}{% endif %}
   {% include "shop_items.html" %}
   {% if products %}
-  {#- Each product's full details, opened from the eye on its card (static/shop.js). -#}
-  {% for p in products %}
+  {#- Each product's full details, opened from the eye on its card (static/shop.js): on a phone a page of its own,
+      the picture on top and the details on a sheet with a curved edge over it; a window on a wide screen. -#}
+  {% for p in products %}{% set pc = cat_by_id.get(p.category) %}
   <dialog class="peek-box" id="peek-{{ p.id }}" aria-labelledby="peek-{{ p.id }}-name" data-lenis-prevent>
+    <div class="peek-pic">
+      {%- if p.image %}<img src="{{ url_for('prod_images.image', pid=p.id, v=p.image) }}" alt="" loading="lazy">
+      {%- elif pc and pc.image %}<img src="{{ url_for('cat_images.image', cid=pc.id, v=pc.version) }}" alt="" loading="lazy">
+      {%- else %}<span aria-hidden="true">{{ p.name[:1] }}</span>{% endif -%}
+      <form method="dialog" class="peek-x"><button type="submit" aria-label="إغلاق"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button></form>
+    </div>
     <div class="peek-in">
-      <form method="dialog" class="peek-x"><button type="submit" aria-label="إغلاق">&times;</button></form>
       <h2 id="peek-{{ p.id }}-name" dir="auto">{{ p.name }}</h2>
-      <p class="peek-price"><b>{{ p.price|money }}</b> ر.س</p>
+      <p class="peek-price"><b>{{ p.price|money }}</b> ر.س <span class="peek-kind {{ 'by-hand' if p.manual else 'instant' }}">{{ '✋ تسليم يدوي' if p.manual else '⚡ تسليم فوري' }}</span></p>
       {% if p.description %}<p class="peek-desc" dir="auto">{{ p.description }}</p>{% endif %}
       <dl class="peek-facts">
         <div><dt>الحالة</dt><dd class="{{ 'bad' if not p.available else ('few' if p.available <= 3 and not p.manual else 'ok') }}">

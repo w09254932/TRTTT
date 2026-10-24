@@ -31,3 +31,27 @@
   .cards .item-bar span { font-size: .66rem; padding: .18rem .2rem; }
   .cards .item-text h2 { font-size: 1rem; }
 }
+
+/* The details of a product (the eye on its card): on a phone a page of its own with the picture on top and the
+   details on a sheet whose curved edge rises over the picture; on a wide screen the same as a window. */
+.peek-box { padding: 0; overflow: auto; overscroll-behavior: contain; }
+.peek-pic { position: relative; aspect-ratio: 5 / 4; display: grid; place-items: center; background: linear-gradient(160deg, var(--panel-2), var(--bg)); }
+.peek-pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.peek-pic > span { font-size: 4rem; font-weight: 700; color: var(--accent-text); }
+.peek-box .peek-x { position: absolute; top: .8rem; right: .8rem; left: auto; z-index: 2; }
+.peek-box .peek-x button { width: 38px; height: 38px; color: #fff; background: rgba(8, 6, 20, .55); border-color: rgba(255, 255, 255, .25); backdrop-filter: blur(4px); }
+.peek-box .peek-x svg { width: 20px; height: 20px; }
+.peek-box .peek-in { position: relative; margin-top: -1.4rem; padding: 1.3rem 1.1rem 1.2rem; border-radius: 22px 22px 0 0; background: linear-gradient(180deg, var(--panel-2), var(--panel)); box-shadow: 0 -10px 24px rgba(0, 0, 0, .25); }
+.peek-box h2 { padding-left: 0; }
+.peek-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .5rem; }
+.peek-kind { padding: .05rem .55rem; border-radius: 99px; font-size: .72rem; font-weight: 700; border: 1px solid; }
+.peek-kind.instant { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.peek-kind.by-hand { color: #b79bff; border-color: color-mix(in srgb, #b79bff 50%, transparent); }
+@media (max-width: 639px) {
+  .peek-box { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0; background: var(--panel); }
+  .peek-box .peek-in { min-height: calc(100% - 80vw + 1.4rem); }
+}
+@media (min-width: 640px) {
+  .peek-box { width: min(100% - 2rem, 440px); max-height: min(100% - 2rem, 760px); }
+  .peek-pic { aspect-ratio: 16 / 10; }
+}
