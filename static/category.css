@@ -17,13 +17,12 @@
 .cat-back svg { width: 18px; height: 18px; }
 .cat-back:hover { border-color: var(--accent); color: var(--accent-text); }
 
-/* Opening a category: the page opens like a door from the middle over the store (a cross-document view transition,
-   chosen by the owner). Only the store's pages opt in, and static/shop.js keeps it for taps that open a category;
-   browsers without view transitions, or with reduced motion asked for, simply open the page. */
-@view-transition { navigation: auto; }
-::view-transition-old(root) { animation: none; }
-::view-transition-new(root) { animation: door-open .75s cubic-bezier(.65, 0, .35, 1) both; }
+/* Into a category the page opens like a door from the middle over the store; back to the front it closes into the
+   middle and the store shows behind it (cross-document view transitions, chosen by the owner). Each store page names
+   its kind of arrival (static/vt-open.css on a category, static/vt-close.css on the front), and static/shop.js lets
+   only those two journeys play. Browsers without view transitions, or with reduced motion asked for, just go. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html:active-view-transition-type(open)::view-transition-new(root) { animation: door-open .75s cubic-bezier(.65, 0, .35, 1) both; }
+html:active-view-transition-type(close)::view-transition-old(root) { z-index: 1; animation: door-close .75s cubic-bezier(.65, 0, .35, 1) both; }
 @keyframes door-open { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0 0 0 0); } }
-@media (prefers-reduced-motion: reduce) {
-  @view-transition { navigation: none; }
-}
+@keyframes door-close { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 50% 0 50%); } }

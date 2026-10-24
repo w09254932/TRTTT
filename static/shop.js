@@ -31,13 +31,17 @@
     });
   }
 
-  // The door opening (static/category.css) is only for going into a category: leaving for the front page, a
-  // search or the same page goes without it.
+  // The door (static/category.css) plays only from the front page into a category, where it opens, and from a
+  // category back to the front page, where it closes. Anything else (a search, the same page) goes without it.
   window.addEventListener('pageswap', function (event) {
     if (event.viewTransition === null || event.viewTransition === undefined) { return; }
     var entry = event.activation && event.activation.entry;
-    var to = entry ? new URL(entry.url) : null;
-    if (to === null || to.origin !== location.origin || to.pathname.indexOf('/c/') !== 0 || to.pathname === location.pathname) {
+    var to = null;
+    try { to = entry && entry.url ? new URL(entry.url) : null; } catch (e) { to = null; }
+    var here = location.pathname;
+    var into = to !== null && to.pathname.indexOf('/c/') === 0 && here === '/';
+    var back = to !== null && to.pathname === '/' && here.indexOf('/c/') === 0;
+    if (to === null || to.origin !== location.origin || (into || back) === false) {
       event.viewTransition.skipTransition();
     }
   });

@@ -1,0 +1,4 @@
+/* The store's front page: arriving here from a category plays the door closing (static/category.css). */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; types: close; }
+}

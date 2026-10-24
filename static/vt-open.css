@@ -1,0 +1,4 @@
+/* A category's page: arriving here plays the door opening (static/category.css). */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; types: open; }
+}
