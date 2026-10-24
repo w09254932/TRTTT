@@ -387,8 +387,9 @@ OTHER = {"id": "other", "name": "منتجات أخرى", "image": None, "image_t
 @shop.get("/")
 @shop.get("/c/<cat>")
 def store(cat=""):
-    """The store: its categories, each opening on a page of its own (/c/<id>), narrowed further by instant or by
-    hand and by a search. A store with no categories lists its products on the front page."""
+    """The store: its categories, each opening on a page of its own (/c/<id>) with all its products. When the store
+    sells both kinds, two tabs choose which categories the front page shows: those with products delivered at once,
+    or by hand. A store with no categories lists its products on the front page, and the tabs narrow them."""
     from accounts import signed_in_customer
     from restock import waiting_for
     owner = signed_in(svc().cfg)
@@ -401,29 +402,41 @@ def store(cat=""):
     def home(p):
         return p["category"] if p["category"] in known else OTHER["id"]
 
-    counts = {}
-    for p in everything:
-        counts[home(p)] = counts.get(home(p), 0) + 1
-    cats = [c for c in svc().categories.all() if counts.get(c["id"])]
-    if cats and counts.get(OTHER["id"]):
-        cats.append(OTHER)
     both = len({p["manual"] for p in everything}) > 1
-    if cat and not any(c["id"] == cat for c in cats):   # a category that is gone, or empty now
-        return redirect(url_for(".store"), 302)
     kind = request.args.get("kind", "")
-    kind = kind if both and kind in ("instant", "manual") else ""
+    kind = (kind if kind in ("instant", "manual") else "instant") if both else ""
+
+    def fits(p):
+        return not kind or p["manual"] == (kind == "manual")
+
+    def tally(rows, grouped):
+        """(counts, categories) of these products; «other» joins once the store shows categories at all."""
+        found = {}
+        for p in rows:
+            found[home(p)] = found.get(home(p), 0) + 1
+        listed = [c for c in svc().categories.all() if found.get(c["id"])]
+        return found, (listed + [OTHER] if (listed or grouped) and found.get(OTHER["id"]) else listed)
+
+    counts, every_cat = tally(everything, False)
+    if cat and not any(c["id"] == cat for c in every_cat):   # a category that is gone, or empty now
+        return redirect(url_for(".store"), 302)
     q = clean_text(request.args.get("q", ""), 60)
-    shown = [p for p in everything
-             if (not cat or home(p) == cat) and (not kind or p["manual"] == (kind == "manual"))
-             and (not q or q.lower() in f"{p['name']} {p['description']}".lower())]
+    if cat:                                    # a category's page: all its products, whatever the tab was
+        cats = every_cat
+        shown = [p for p in everything if home(p) == cat]
+    else:                                      # the front page: the categories of the chosen tab
+        counts, cats = tally([p for p in everything if fits(p)], bool(every_cat))
+        shown = everything if every_cat else [p for p in everything if fits(p)]
+    shown = [p for p in shown if not q or q.lower() in f"{p['name']} {p['description']}".lower()]
     # With categories, the front page shows only them: every product waits on its category's page. They stay in
-    # the page, hidden, so typing in the search finds them at once.
-    shelved = {p["id"] for p in shown} if cats and not cat and not q else set()
+    # the page, hidden, so typing in the search finds them at once, whichever tab is open.
+    shelved = {p["id"] for p in shown} if every_cat and not cat and not q else set()
     me = signed_in_customer()
     asked = {p["id"] for p in shown if not p["available"] and waiting_for(p["id"], me)} if me else set()
     return render_template("shop.html", products=shown, brand=svc().brand.get(), owner=owner,
                            total=len(everything), cats=cats, counts=counts, both=both, cat=cat, kind=kind, q=q,
-                           asked=asked, shelved=shelved, chosen=next((c for c in cats if c["id"] == cat), None))
+                           kind_arg=kind if kind == "manual" else None, asked=asked, shelved=shelved,
+                           chosen=next((c for c in cats if c["id"] == cat), None))
 
 
 # Links from before the dashboard moved to /admin (owner emails, bookmarks).

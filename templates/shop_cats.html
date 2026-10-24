@@ -1,8 +1,9 @@
-{#- The front page's categories with their pictures; each opens its own page. -#}
-<nav class="cats" aria-label="التصنيفات" data-lenis-prevent>
+{#- The front page's categories with their pictures, three to a row; each opens its own page. A name of up to 20
+    letters stays on one line, a longer one takes two. -#}
+<nav class="cats" aria-label="التصنيفات">
   {% for c in cats %}
-  <a class="cat{{ ' on' if cat == c.id }}" href="{{ url_for('shop.store', cat=None if cat == c.id else c.id, kind=kind or None) }}"{% if cat == c.id %} aria-current="page"{% endif %}>
+  <a class="cat" href="{{ url_for('shop.store', cat=c.id, kind=kind_arg) }}">
     <span class="cat-pic">{% if c.image %}<img src="{{ url_for('cat_images.image', cid=c.id, v=c.version) }}" alt="" loading="lazy">{% else %}<span>{{ c.name[:1] }}</span>{% endif %}</span>
-    <b dir="auto">{{ c.name }}</b><small>{{ counts.get(c.id, 0) }}</small></a>
+    <b dir="auto"{% if c.name|length > 20 %} class="long"{% endif %}>{{ c.name }}</b><small>{{ counts.get(c.id, 0) }}</small></a>
   {% endfor %}
 </nav>

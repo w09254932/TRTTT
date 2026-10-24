@@ -1,16 +1,15 @@
-{#- Above the products: search as you type (static/shop.js; without script the form searches on the server),
-    instant or by-hand when the store has both, and on the front page the categories with their pictures
-    (shop_cats.html); a category's page searches its own products. -#}
+{#- Above the categories: search as you type (static/shop.js; without script the form searches on the server),
+    and when the store sells both kinds, the tabs that choose which categories show: delivered at once or by hand
+    (instant is the default, so its links carry no kind). A category's page searches its own products. -#}
 <form class="finder" method="get" action="{{ url_for('shop.store', cat=cat or None) }}" role="search">
-  {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
+  {% if kind_arg %}<input type="hidden" name="kind" value="{{ kind_arg }}">{% endif %}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
   <input id="shop-q" name="q" type="search" maxlength="60" value="{{ q }}" placeholder="{{ 'ابحث في ' ~ chosen.name if chosen else 'ابحث عن منتج' }}" aria-label="{{ 'ابحث في ' ~ chosen.name if chosen else 'ابحث عن منتج' }}" autocomplete="off" data-find-input>
 </form>
-{% if both %}
+{% if both and not chosen %}
 <nav class="kinds" aria-label="نوع التسليم">
-  <a href="{{ url_for('shop.store', cat=cat or None, q=q or None) }}"{% if not kind %} aria-current="page"{% endif %}>الكل</a>
-  <a href="{{ url_for('shop.store', kind='instant', cat=cat or None, q=q or None) }}"{% if kind == 'instant' %} aria-current="page"{% endif %}>فوري</a>
-  <a href="{{ url_for('shop.store', kind='manual', cat=cat or None, q=q or None) }}"{% if kind == 'manual' %} aria-current="page"{% endif %}>يدوي</a>
+  <a href="{{ url_for('shop.store') }}"{% if kind == 'instant' %} aria-current="page"{% endif %}>تسليم فوري</a>
+  <a href="{{ url_for('shop.store', kind='manual') }}"{% if kind == 'manual' %} aria-current="page"{% endif %}>تسليم يدوي</a>
 </nav>
 {% endif %}
 {% if cats and not chosen %}{% include "shop_cats.html" %}{% endif %}
